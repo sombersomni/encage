@@ -2,9 +2,12 @@
   "name": "encage",
   "version": "1.0.0",
   "description": "create private and static variables in a class like C++",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "test": "mocha"
+    "test": "mocha",
+    "bundle": "gulp",
+    "start": "node dist/index.js",
+    "dev": "node src/index.js"
   },
   "repository": {
     "type": "git",
@@ -26,6 +29,7 @@
   "devDependencies": {
     "@babel/core": "^7.4.3",
     "@babel/preset-env": "^7.4.3",
+    "gulp": "^4.0.0",
     "gulp-babel": "^8.0.0-beta.2",
     "mocha": "^6.1.3"
   },
