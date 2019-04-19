@@ -3,7 +3,6 @@ var encage = require('../src/index.js');
 var expect = chai.expect;
 
 let BankAccount;
-let User;
 describe('#encage', function () {
     it('throws error if encage takes any but Function or Object', function () {
         expect(encage.bind(null, "config")).to.throw(TypeError, 'Must use a constructor Function or Object');
@@ -104,8 +103,8 @@ describe('#encage', function () {
             const account = eBankAccount.create();
             expect(account.name).to.equal('');
         })
-        beforeEach(function () {
-            User = function () {
+        it('can take function constructors as a parameter', function () {
+            function User() {
                 this.name = "Xavier";
                 this.id = 21240242;
                 this.private = {
@@ -132,8 +131,6 @@ describe('#encage', function () {
                     return this.private.info.address;
                 }
             }
-        });
-        it('can take function constructors as a parameter', function () {
             const eUser = encage(User);
             const user1 = eUser.create({
                 name: "Xavier",
@@ -142,16 +139,33 @@ describe('#encage', function () {
                     phone: "1025552444",
                 }
             });
+            expect(user1).to.be.instanceOf(User);
             expect(user1.getName()).to.equal("Xavier");
             expect(user1.getAddress()).to.equal("222 Mahogany Lane");
             expect(eUser.userCount).to.equal(1);
             expect(eUser.allIDs.length).to.equal(1);
             expect(eUser.allIDs[0]).to.equal("Xavier");
         });
-        beforeEach(function () { 
-            
-            
-        });
+        it("can create singleton objects for one instance", function () {
+            class Earth {
+                constructor() {
+                    this.population = 21424214;
+                    this.size = 35353035;
+
+                }
+                description() {
+                    return "Big blue ball floating in space"
+                }
+            }
+            const options = { singleton: true };
+            const eEarth = encage(Earth, options);
+            const earth = eEarth.create();
+            expect(earth.description()).to.equal("Big blue ball floating in space");
+            expect(earth).to.be.instanceOf(Earth);
+            expect(earth).to.be.an('object');
+            const earth2 = eEarth.create();
+            expect(earth2).to.be.null;
+        })
 
     });
 });

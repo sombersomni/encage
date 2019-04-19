@@ -1,5 +1,9 @@
+var {SINGLETON_FLAG} = require("./helpers/flags");
+
 //this function is using closures to keep private variables and public variables intact and managable
-function encage(Parent) {
+function encage(Parent, options = { singleton: false, trackInstances: false }) {
+  let encageState = {flag: 0};
+ 
   const isObject = (typeof Parent === 'object' && Parent.constructor === Object);
   if (Parent && Parent instanceof Function || isObject) {
     let Root = {};
@@ -7,6 +11,7 @@ function encage(Parent) {
       Root = Object.freeze(Parent);
     } else {
       try {
+        console.log("working with function or class");
         tempRoot = Object.assign({}, new Parent());
         Root['public'] = {};
         for (let prop in tempRoot) {
@@ -108,7 +113,13 @@ function encage(Parent) {
                 }
               }
             }
-            return newInst;
+            if (options.singleton) {
+              encageState.flag = encageState.flag ^ SINGLETON_FLAG;
+              options.singleton = false;
+              return newInst;
+            } else {
+              return encageState.flag & 1? null: newInst;
+            }
           }
           return initialize();
         } else throw new TypeError('Argument must be an object for create');
