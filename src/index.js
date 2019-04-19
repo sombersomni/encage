@@ -1,27 +1,29 @@
-var {SINGLETON_FLAG} = require("./helpers/flags");
+var { SINGLETON_FLAG } = require("./helpers/flags");
 
 //this function is using closures to keep private variables and public variables intact and managable
-function encage(Parent, options = { singleton: false, trackInstances: false }) {
-  let encageState = {flag: 0};
- 
-  const isObject = (typeof Parent === 'object' && Parent.constructor === Object);
+function encage(Parent, options = { singleton: false }) {
+  //keep track of the encage state for user specified options
+  let encageState = { flag: 0 };
+  //checks if Parent Object/Class is an object or constructor class
+  const isObject = (typeof Parent === 'object' && (Parent.constructor === Object));
   if (Parent && Parent instanceof Function || isObject) {
     let Root = {};
     if (isObject) {
-      Root = Object.freeze(Parent);
+      Root = Object.create(Parent);
     } else {
       try {
-        console.log("working with function or class");
-        tempRoot = Object.assign({}, new Parent());
+        tempRoot = Object.create(new Parent());
+        Root = Object.create(Parent.prototype);
         Root['public'] = {};
         for (let prop in tempRoot) {
-          if (prop != 'private' && prop != 'public' && prop != 'static' && prop != '_init')
+          if (prop != 'private' && prop != 'protected' && prop != 'public' && prop != 'static' && prop != 'init')
             Root['public'][prop] = tempRoot[prop];
           else Root[prop] = Object.assign({}, tempRoot[prop]);
         }
         for (let key in Parent.prototype) {
           Root['public'][key] = Parent.prototype[key];
         }
+        Root = Object.freeze(Root);
       } catch (err) {
         console.warn("make sure to use a constructor function")
       }
@@ -46,38 +48,79 @@ function encage(Parent, options = { singleton: false, trackInstances: false }) {
       }
     }
     Encaged.prototype = Object.assign({}, {
-      create: function () {
+      extend: function (Child, extendOpts = { allowInits: true }) {
+        tempChild = Object.create(new Child());
+        tempChild['public'] = {};
+        for (let key in Child.prototype) {
+          tempChild['public'][key] = Child.prototype[key];
+        }
+        const { allowInits } = extendOpts;
+        for (let setting in Root) {
+          if (setting != 'private') {
+            if (allowInits === true) {
+              tempChild[setting] = Object.assign({}, tempChild[setting], Root[setting]);
+            } else if (allowInits instanceof Array) {
+              if (setting === 'init') {
+                allowed = {};
+                for (let each in allowInits) {
+                  if (Root['init'].hasOwnProperty(each)) {
+                    allowed[each] = Root['init'][each];
+                  }
+                }
+                tempChild[setting] = Object.assign({}, tempChild[setting], allowed);
+              } else {
+                tempChild[setting] = Object.assign({}, tempChild[setting], Root[setting]);
+              }
+            } else {
+              if (setting != 'init' && setting != 'static') {
+                tempChild[setting] = Object.assign({}, tempChild[setting], Root[setting]);
+              }
+            }
+          }
+        }
+        const newChild = Object.create(Child.prototype);
+        return encage(Object.assign(newChild, tempChild), { inherited: true });
+      },
+      create: function (createOpts = {}) {
         //assign arguments from create to public and private set variables
-        if ((typeof arguments[0] === 'object' && arguments[0].constructor === Object) || (arguments.length === 0)) {
+        if ((typeof createOpts === 'object' && createOpts.constructor === Object)) {
 
           const publicProps = {};
           let filteredOutArgsPublic = [];
-          if (arguments.length === 1) {
-            filteredOutArgsPublic = Root.public != undefined ? Object.keys(Root.public).filter(prop => !arguments[0].hasOwnProperty(prop)) : [];
-            Object.keys(arguments[0]).forEach(prop => {
+          if (createOpts) {
+            filteredOutArgsPublic = Root.public ? Object.keys(Root.public).filter(prop => !createOpts.hasOwnProperty(prop)) : [];
+            Object.keys(createOpts).forEach(prop => {
               //assigns class arguments to public vars
-              if (Root.public != undefined && Root.public.hasOwnProperty(prop)) {
-                const value = arguments[0][prop];
+              if (Root.public && Root.public.hasOwnProperty(prop)) {
+                const value = createOpts[prop];
                 publicProps[prop] = {
                   value,
                   writeable: true,
                   enumerable: true
                 }
                 //assigns class arguments to public vars
-              } else if (Root.private != undefined && Root.private.hasOwnProperty(prop)) {
-                const value = arguments[0][prop];
+              } else if (Root.private && Root.private.hasOwnProperty(prop)) {
+                const value = createOpts[prop];
                 Root.private[prop] = value;
+              } else if (Root.protected && Root.protected.hasOwnProperty(prop)) {
+
               }
             });
           } else {
             filteredOutArgsPublic = Object.keys(Root.public);
           }
-
-          //setup for private state
-          let _private = Object.assign({}, Root.private);
+          //setup for private and protected state
+          //sealing private so it can't be deleted from the outside.
+          let _private = Object.seal(Object.assign({}, Root.private));
+          //sealing protected so it can't be deleted from the outside.
+          let _protected = Object.seal(Object.assign({}, Root.protected));
           //creates a new instance to configure before returning to user
           const initialize = () => {
-            let newInst = Object.create((isObject ? {} : Parent.prototype), publicProps);
+            let newInst = {}
+            if (options.inherited)
+              newInst = Object.create(Parent, publicProps);
+            else
+              newInst = Object.create((isObject ? {} : Parent.prototype), publicProps);
             //maps all functions to instance and private/static variables using apply
             if (_private) {
               for (let prop in _private) {
@@ -85,7 +128,9 @@ function encage(Parent, options = { singleton: false, trackInstances: false }) {
                   const tempFn = _private[prop];
                   _private[prop] = function () {
                     return tempFn.apply(Object.assign({}, newInst,
-                      Root.static != undefined ? { static: this } : {}, { private: Object.assign(_private) }), arguments);
+                      Root.static ? { static: Object.seal(Object.assign({}, this)) } : {},
+                      { private: Object.assign(_private) },
+                      _protected ? { protected: Object.assign(_protected) } : {}), arguments);
                   }
                 }
               }
@@ -95,8 +140,9 @@ function encage(Parent, options = { singleton: false, trackInstances: false }) {
                 if (Root.public[prop] instanceof Function) {
                   newInst[prop] = function () {
                     return Root.public[prop].apply(Object.assign({}, newInst,
-                      Root.static != undefined ? { static: this } : {},
-                      _private != undefined ? { private: Object.assign(_private) } : {}), arguments);
+                      Root.static ? { static: Object.seal(Object.assign({}, this)) } : {},
+                      _private ? { private: Object.assign(_private) } : {},
+                      _protected ? { protected: Object.assign(_protected) } : {}), arguments);
                   }
                 } else {
                   newInst[prop] = Root.public[prop];
@@ -104,12 +150,14 @@ function encage(Parent, options = { singleton: false, trackInstances: false }) {
               });
             }
             //creates copy of instance so we don't add static or private variables
-            if (Root._init) {
-              for (prop in Root._init) {
-                if (Root._init[prop] instanceof Function) {
-                  Root._init[prop].call(Object.assign({}, newInst,
-                    Root.static != undefined ? { static: this } : {},
-                    _private != undefined ? { private: Object.assign(_private) } : {}));
+            if (Root.init) {
+              for (prop in Root.init) {
+                if (Root.init[prop] instanceof Function) {
+                  Root.init[prop].call(Object.assign({}, newInst,
+                    Root.static ? { static: Object.assign(this) } : {},
+                    _private ? { private: Object.assign(_private) } : {},
+                    _protected ? { protected: Object.assign(_protected) } : {},
+                    { _instance: Object.seal(newInst) }));
                 }
               }
             }
@@ -118,7 +166,7 @@ function encage(Parent, options = { singleton: false, trackInstances: false }) {
               options.singleton = false;
               return newInst;
             } else {
-              return encageState.flag & 1? null: newInst;
+              return encageState.flag & 1 ? null : newInst;
             }
           }
           return initialize();
