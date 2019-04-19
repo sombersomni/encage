@@ -91,29 +91,67 @@ describe('#encage', function () {
             account.deposit("marvel", 1000);
             expect(account.getBalance()).to.equal(1000);
         });
-        it('can use static functions', function() {
-            const eBankAccount = encage(BankAccount); 
+        it('can use static functions', function () {
+            const eBankAccount = encage(BankAccount);
             const account = eBankAccount.create({ name: 'Xavier', bankName: 'Regions', accountNumber: 10204343 });
             const account2 = eBankAccount.create({ name: 'Korey', bankName: 'Regions', accountNumber: 43462345 });
             expect(eBankAccount.printClients).to.not.throw();
             expect(eBankAccount.printClients).to.be.instanceOf(Function);
 
         });
+        it('can run create with no arguments passed', function () {
+            const eBankAccount = encage(BankAccount);
+            const account = eBankAccount.create();
+            expect(account.name).to.equal('');
+        })
         beforeEach(function () {
-            User = function() {
+            User = function () {
                 this.name = "Xavier";
                 this.id = 21240242;
                 this.private = {
-                    info: {
-                        address: "222 Mahogany Lane",
-                        phone: "1025552444",
-                    }
+                    info: {}
                 }
                 this.static = {
                     userCount: 0,
                     allIDs: []
                 }
+                this._init = {
+                    upCount: function () {
+                        this.static.userCount++;
+                    },
+                    addIDS: () => {
+                        this.static.allIDs.push(this.name);
+                    }
+                }
+            }
+            User.prototype = {
+                getName: function () {
+                    return this.name;
+                },
+                getAddress: function () {
+                    return this.private.info.address;
+                }
             }
         });
+        it('can take function constructors as a parameter', function () {
+            const eUser = encage(User);
+            const user1 = eUser.create({
+                name: "Xavier",
+                info: {
+                    address: "222 Mahogany Lane",
+                    phone: "1025552444",
+                }
+            });
+            expect(user1.getName()).to.equal("Xavier");
+            expect(user1.getAddress()).to.equal("222 Mahogany Lane");
+            expect(eUser.userCount).to.equal(1);
+            expect(eUser.allIDs.length).to.equal(1);
+            expect(eUser.allIDs[0]).to.equal("Xavier");
+        });
+        beforeEach(function () { 
+            
+            
+        });
+
     });
 });
