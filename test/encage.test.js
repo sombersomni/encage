@@ -2,15 +2,11 @@ var chai = require('chai');
 var encage = require('../src/index.js');
 var assert = chai.assert;
 
-describe('Encage', function() {
-    it('returns an object', function () {
-        encaged = encage();
-        assert.isObject(encaged, 'encage object is an object');
-    });
-    it('checks for error if user overides create method', function() {
-        const config = {
-            static: { create: function () { } }
-        };
-        assert.throws(encage.bind(null,config),"Try using a different method name besides create in your static config. Can't overrid encage's create method");
-    });
+describe('#encage', function() {
+    it('throws error if encage takes any but Function or Object', function() {
+        assert.throws(encage.bind(null, "config"), 'Must use a constructor Function or Object');
+        assert.throws(encage.bind(null, 3), 'Must use a constructor Function or Object');
+        assert.throws(encage.bind(null, true), 'Must use a constructor Function or Object');
+        assert.throws(encage.bind(null, []), 'Must use a constructor Function or Object');
+    })
 });
