@@ -37,7 +37,7 @@ describe('#encage', function () {
                     getBalance: function () {
                         return this.private.balance;
                     },
-                    widthdraw: function (password, amount) {
+                    withdraw: function (password, amount) {
                         if (this.private.checkPassword(password)) {
                             this.private.reduceBalance(amount);
                             console.log("Account balance is : " + this.private.balance)
@@ -162,6 +162,36 @@ describe('#encage', function () {
             expect(earth).to.be.an('object');
             const earth2 = eEarth.create();
             expect(earth2).to.be.null;
+        });
+        it('can allow for overwritten functions but only for public vars', function() {
+            const account = eBankAccount.create({ name: "Melissa", bankName: "Chase", password: "password"});
+            console.log(account);
+            account.deposit("password", 100);
+            account.withdraw("password", 10);
+            expect(account.getBalance()).to.equal(90);
+            account.deposit = function () { return _private.balance; }
+            expect(account.deposit).to.throw(ReferenceError, "_private is not defined");
+            account.withdraw = function () { return this.static; }
+            expect(account.withdraw()).to.be.undefined;
+            account.getName = function () { return "My name is " + this.name}
+            expect(account.getName()).to.equal("My name is Melissa");
+        });
+        it('allows all instances to be sealed so no other properties can be added', function() {
+            const account = eBankAccount.create({ name: "Hermione", bankName: "Gringots", password: "Hufflepuff"}, { sealed: true });
+            expect(Object.isSealed(account)).to.be.true;
+            account.location = "UK";
+            expect(account.location).to.be.undefined;
+
+        });
+        it('can keep track of all instances in order of creation', function () {
+            const Animal = {
+                public: {
+                    name: 'n/a',
+                    type: 'n/a',
+                },
+                speed: {}
+
+            }
         })
 
     });
@@ -172,6 +202,7 @@ describe('#encage', function () {
                 this.height = 10;
                 this.name = '';
                 this.sides = 0;
+                this.position= { x: 0, y: 0 };
                 this.init = {
                     addShape: function () {
                         this.static.numOfShapes++;
@@ -183,11 +214,17 @@ describe('#encage', function () {
                     shapes: []
                 }
                 this.private = {
-                    position: { x: 0, y: 0 }
+                    id: 201232131
                 }
                 this.protected = {
-                    checkCollision: function () {
-                        return 1;
+                    checkCollision: function (shape) {
+                        if(shape instanceof Square) {
+                            if (this.position.x === shape.position.x)
+                                return 1; 
+                            else return 2;
+                        } else {
+                            return 0;
+                        }
                     }
                 }
             }
@@ -198,13 +235,20 @@ describe('#encage', function () {
             }
             Square.prototype = {
                 area() {
-                    return this.length * this.width;
+                    return this.height * this.width;
+                },
+                hit(shape) {
+                    return this.protected.checkCollision(shape);
                 }
             }
             const eShape = encage(Shape);
             const eSquare = eShape.extend(Square);
             const square = eSquare.create({ name: "box", width: 20, height: 20, sides: 4 });
-            expect(square.position).to.be.undefined;
+            const square2 = eSquare.create({ name: "box", width: 5, height: 5, sides: 4, id: 342343243 });
+            expect(square.area()).to.equal(400);
+            expect(square).to.be.instanceOf(Square);
+            expect(square.hit(square2)).to.equal(1);
+            expect(square.id).to.be.undefined;
         })
     });
 });

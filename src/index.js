@@ -81,18 +81,18 @@ function encage(Parent, options = { singleton: false }) {
         const newChild = Object.create(Child.prototype);
         return encage(Object.assign(newChild, tempChild), { inherited: true });
       },
-      create: function (createOpts = {}) {
+      create: function (constructArgs = {}, createOpts = { sealed: false, freeze: false }) {
         //assign arguments from create to public and private set variables
-        if ((typeof createOpts === 'object' && createOpts.constructor === Object)) {
+        if ((typeof constructArgs === 'object' && constructArgs.constructor === Object)) {
 
           const publicProps = {};
           let filteredOutArgsPublic = [];
-          if (createOpts) {
-            filteredOutArgsPublic = Root.public ? Object.keys(Root.public).filter(prop => !createOpts.hasOwnProperty(prop)) : [];
-            Object.keys(createOpts).forEach(prop => {
+          if (constructArgs) {
+            filteredOutArgsPublic = Root.public ? Object.keys(Root.public).filter(prop => !constructArgs.hasOwnProperty(prop)) : [];
+            Object.keys(constructArgs).forEach(prop => {
               //assigns class arguments to public vars
               if (Root.public && Root.public.hasOwnProperty(prop)) {
-                const value = createOpts[prop];
+                const value = constructArgs[prop];
                 publicProps[prop] = {
                   value,
                   writeable: true,
@@ -100,10 +100,10 @@ function encage(Parent, options = { singleton: false }) {
                 }
                 //assigns class arguments to public vars
               } else if (Root.private && Root.private.hasOwnProperty(prop)) {
-                const value = createOpts[prop];
+                const value = constructArgs[prop];
                 Root.private[prop] = value;
               } else if (Root.protected && Root.protected.hasOwnProperty(prop)) {
-
+                Root.protected[prop] = value;
               }
             });
           } else {
@@ -135,6 +135,19 @@ function encage(Parent, options = { singleton: false }) {
                 }
               }
             }
+            if (_protected) {
+              for (let prop in _protected) {
+                if (_protected[prop] instanceof Function) {
+                  const tempFn = _protected[prop];
+                  _protected[prop] = function () {
+                    return tempFn.apply(Object.assign({}, newInst,
+                      Root.static ? { static: Object.seal(Object.assign({}, this)) } : {},
+                      { private: Object.assign(_private) },
+                      { protected: Object.assign(_protected) }), arguments);
+                  }
+                }
+              }
+            }
             if (Root.public) {
               filteredOutArgsPublic.forEach(prop => {
                 if (Root.public[prop] instanceof Function) {
@@ -157,10 +170,16 @@ function encage(Parent, options = { singleton: false }) {
                     Root.static ? { static: Object.assign(this) } : {},
                     _private ? { private: Object.assign(_private) } : {},
                     _protected ? { protected: Object.assign(_protected) } : {},
-                    { _instance: Object.seal(newInst) }));
+                    { _instance: Object.seal(Object.create(newInst)) }));
                 }
               }
             }
+            if (createOpts.sealed) {
+              newInst = Object.seal(newInst);
+            } else if (createOpts.freeze) {
+              newInst = Object.freeze(newInst);
+            }
+            //flips singleton flag so it will no longer create instances
             if (options.singleton) {
               encageState.flag = encageState.flag ^ SINGLETON_FLAG;
               options.singleton = false;
