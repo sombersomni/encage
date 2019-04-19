@@ -21,6 +21,7 @@ function encage(Parent) {
         console.warn("make sure to use a constructor function")
       }
     }
+    //creates static state for object
     let _static = { methods: {}, variables: {} }
     for (let key in Root.static) {
       if ((Root.static[key] instanceof Function)) {
@@ -41,7 +42,6 @@ function encage(Parent) {
     }
     Encaged.prototype = Object.assign({}, {
       create: function () {
-        //setup for public variables
         //assign arguments from create to public and private set variables
         if ((typeof arguments[0] === 'object' && arguments[0].constructor === Object) || (arguments.length === 0)) {
 
@@ -68,7 +68,7 @@ function encage(Parent) {
             filteredOutArgsPublic = Object.keys(Root.public);
           }
 
-          //setup for public methods
+          //setup for private state
           let _private = Object.assign({}, Root.private);
           //creates a new instance to configure before returning to user
           const initialize = () => {
@@ -120,67 +120,4 @@ function encage(Parent) {
     throw new TypeError('Must use a constructor Function or Object');
   }
 }
-
-// const BankAccount = {
-//   _init: {
-//     addClient: function () {
-//       this.static.numOfAccounts++;
-//       this.static.clients.push(this.name);
-//     }
-//   },
-//   static: {
-//     numOfAccounts: 0,
-//     clients: [],
-//     printClients: function () {
-//       for (let i in this.clients) {
-//         console.log("Client " + i + " : " + this.clients[i]);
-//       }
-//     }
-//   },
-//   public: {
-//     name: '',
-//     bankName: 'regions',
-//     setPassword: function (password) {
-//       this.private.password = password;
-//     },
-//     getBalance: function () {
-//       return this.private.balance;
-//     },
-//     widthdraw: function (password, amount) {
-//       if (this.private.checkPassword(password)) {
-//         this.private.reduceBalance(amount);
-//         console.log("Account balance is : " + this.private.balance)
-//         return amount;
-//       }
-//     },
-//     deposit: function (password, amount) {
-//       if (this.private.checkPassword(password)) {
-//         this.private.addBalance(amount);
-//         console.log("Account balance is : " + this.private.balance)
-//       }
-//     },
-//   },
-//   private: {
-//     accountNumber: 0,
-//     balance: 0,
-//     password: "test",
-//     checkPassword: function (password) {
-//       return password === this.private.password
-//     },
-//     reduceBalance: function (amount) {
-//       this.private.balance -= amount;
-//     },
-//     addBalance: function (amount) {
-//       this.private.balance += amount;
-//     }
-//   }
-// }
-
-// const eBankAccount = encage(BankAccount);
-// console.log(eBankAccount);
-// const account = eBankAccount.create();
-// console.log(account);
-// const account2 = eBankAccount.create({ name: 'Korey', bankName: 'Regions', accountNumber: 43462345 });
-// console.log("account 2 _______", account2);
-// console.log("last", eBankAccount);
 module.exports = encage;
