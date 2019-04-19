@@ -1,3 +1,4 @@
+//this function is using closures to keep private variables and public variables intact and managable
 function encage(Parent) {
   const isObject = (typeof Parent === 'object' && Parent.constructor === Object);
   if (Parent && Parent instanceof Function || isObject) {
@@ -11,17 +12,24 @@ function encage(Parent) {
         console.warn("make sure to use a constructor function")
       }
     }
-    function Encaged() {
-      if (Root instanceof Function) {
-      } else if (Object.prototype.isPrototypeOf(Root) && Root.static != undefined) {
-        for (let key in Root.static) {
-          if (!(Root.static[key] instanceof Function)) {
-            this[key] = Root.static[key]
-          }
-        }
+    let _static = { methods: {}, variables: {} }
+    for (let key in Root.static) {
+      if ((Root.static[key] instanceof Function)) {
+        _static.methods[key] = Root.static[key];
+      } else {
+        _static.variables[key] = Root.static[key];
       }
     }
-    Encaged.prototype = {
+    function Encaged() {
+      for (let key in _static.variables) {
+        this[key] = _static.variables[key];
+      }
+      for (let key in _static.methods) {
+        this[key] = this[key].bind(this);
+      }
+    }
+    console.log(_static);
+    Encaged.prototype = Object.assign({}, {
       create: function () {
         //setup for public variables
         //assign arguments from create to public and private set variables
@@ -78,7 +86,7 @@ function encage(Parent) {
           }
           //creates copy of instance so we don't add static or private variables
           if (Root._init) {
-            for(prop in Root._init) {
+            for (prop in Root._init) {
               Root._init[prop].call(Object.assign({}, newInst,
                 Root.static != undefined ? { static: this } : {},
                 _private != undefined ? { private: Object.assign(_private) } : {}));
@@ -87,9 +95,8 @@ function encage(Parent) {
           return newInst;
         }
         return initialize();
-
       }
-    }
+    }, _static.methods);
     const inst = new Encaged();
     return inst;
   } else {
