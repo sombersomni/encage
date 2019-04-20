@@ -18,7 +18,12 @@ function encage(Parent, options = { singleton: false }) {
   if (Parent && Parent instanceof Function || isObject) {
     let Root = {};
     if (isObject) {
-      Root = Object.assign({}, Parent);
+      if ((flag & INHERITANCE_FLAG) === INHERITANCE_FLAG) {
+        Root = Object.assign(Object.create(Parent.prevPrototype.prototype), Parent);
+        delete Parent.prevPrototype;
+      } else {
+        Root =  Object.assign({}, Parent);
+      }
     } else {
       try {
         tempRoot = new Parent();
@@ -39,48 +44,45 @@ function encage(Parent, options = { singleton: false }) {
     }
     //creates static state for object
     let _static = { methods: {}, variables: {} }
-    for (let key in Root.static) {
-      if ((Root.static[key] instanceof Function)) {
-        switch (key) {
-          case 'create':
-            throw new Error("You can't overwrite the create method in your static object. Try using another method name or use _create")
-            break;
-          case 'extend':
-            throw new Error("You can't overwrite the extend method in your static object. Try using another method name or use _extend")
-            break;
-          default:
-            _static.methods[key] = Root.static[key];
+    for (let key in Root['static']) {
+      if ((Root['static'][key] instanceof Function)) {
+        if (key === 'create' && key === 'extend') {
+          throw new Error("Try not to overwrite functions supplied by encage like create or extend. Use different method names instead");
+        } else {
+          _static.methods[key] = Root['static'][key];
         }
       } else {
-        _static.variables[key] = Root.static[key];
+        _static.variables[key] = Root['static'][key];
       }
     }
+
     function Encaged() {
+      this.static = {};
       for (let key in _static.variables) {
-        this[key] = _static.variables[key];
+        this.static[key] = _static.variables[key];
       }
       for (let key in _static.methods) {
-        this[key] = this[key].bind(this);
+        this.static[key] = this[key].bind(this);
       }
+
       //keeps track of number of children creaeted
       //DO NO TOUCH
     }
-    Encaged.prototype = Object.assign({
+    Encaged.prototype = Object.assign({}, {
       extend: function (Child, extendOpts = { allowInits: true }) {
         //allows the user to inherit from base class
         //inheritance flag is set to 2;
         numOfChildren++;
         tempChild = {}
-        let newChild = {};
-        if (typeof Child === 'object' && Child.constructor === Object) {
+        if (Child instanceof Function) {
           tempChild = new Child();
-          newChild = Object.create(Child.prototype);
           tempChild['public'] = {};
           for (let key in Child.prototype) {
             tempChild['public'][key] = Child.prototype[key];
           }
         } else {
-          tempChild = Object.assign(tempChild, Child);
+          //run instance and map it to temporary Child before adding inherited properties to it
+          tempChild = Object.assign({}, Child);
         }
         Object.getOwnPropertyNames(tempChild).forEach(prop => {
           if (prop != 'private' && prop != 'protected' && prop != 'public' && prop != 'static' && prop != 'init') {
@@ -95,7 +97,7 @@ function encage(Parent, options = { singleton: false }) {
           if (setting != 'private') {
             if (allowInits === true) {
               if (setting === 'static') {
-                tempChild['static' + numOfChildren] = Object.assign(this);
+                tempChild['static' + numOfChildren] = Object.assign(this.static);
               }
               else {
                 tempChild[setting != 'init' ? setting : setting + numOfChildren] = Object.assign({}, tempChild[setting], Root[setting]);
@@ -109,7 +111,7 @@ function encage(Parent, options = { singleton: false }) {
                 });
                 tempChild[setting + numOfChildren] = Object.assign({}, tempChild[setting], allowed);
               } else if (setting === 'static') {
-                tempChild['static' + numOfChildren] = Object.assign(this);
+                tempChild['static' + numOfChildren] = Object.assign(this.static);
               } else {
                 tempChild[setting] = Object.assign({}, tempChild[setting], Root[setting]);
               }
@@ -120,7 +122,9 @@ function encage(Parent, options = { singleton: false }) {
             }
           }
         }
-        return encage(Object.assign(newChild, tempChild, { inherited: true, numOfChildren: numOfChildren }));
+        const newChild = Object.create(Child.prototype || {});
+        console.log(tempChild instanceof Child, "TRUEEE ");
+        return encage(Object.assign(tempChild, { inherited: true, numOfChildren: numOfChildren, prevPrototype: Child }));
       },
       create: function (constructArgs = {}, createOpts = { sealed: false, freeze: false }) {
         //assign arguments from create to public and private set variables
@@ -157,7 +161,7 @@ function encage(Parent, options = { singleton: false }) {
           let _protected = Object.assign({}, Root.protected);
           //creates a new instance to configure before returning to user
           function initialize() {
-            let _ref = this;
+            let _staticRef = this.static;
             let newInst = {}
             if ((flag & INHERITANCE_FLAG) === INHERITANCE_FLAG) {
               newInst = Object.create(Parent, publicProps);
@@ -171,7 +175,7 @@ function encage(Parent, options = { singleton: false }) {
                   const tempFn = _private[prop];
                   _private[prop] = function () {
                     return tempFn.apply(Object.assign({}, deepAssign(newInst),
-                      _ref ? { static: deepFreeze(Object.create(_ref)) } : {},
+                      _staticRef ? { static: deepFreeze(Object.create(_staticRef)) } : {},
                       { private: deepAssign(_private) },
                       _protected ? { protected: deepAssign(_protected) } : {}), arguments);
                   }
@@ -184,7 +188,7 @@ function encage(Parent, options = { singleton: false }) {
                   const tempFn = _protected[prop];
                   _protected[prop] = function () {
                     return tempFn.apply(Object.assign({}, deepAssign(newInst),
-                      _ref ? { static: deepFreeze(Object.create(_ref)) } : {},
+                      _staticRef ? { static: deepFreeze(Object.create(_staticRef)) } : {},
                       { private: deepAssign(_private) },
                       { protected: deepAssign(_protected) }), arguments);
                   }
@@ -196,7 +200,7 @@ function encage(Parent, options = { singleton: false }) {
                 if (Root.public[prop] instanceof Function) {
                   newInst[prop] = function () {
                     return Root.public[prop].apply(Object.assign({}, deepAssign(this),
-                      _ref ? { static: deepFreeze(Object.create(_ref)) } : {},
+                      _staticRef ? { static: deepFreeze(Object.create(_staticRef)) } : {},
                       _private ? { private: deepAssign(_private) } : {},
                       _protected ? { protected: deepAssign(_protected) } : {}), arguments);
                   }
@@ -208,13 +212,14 @@ function encage(Parent, options = { singleton: false }) {
             //check inits for multiple initializaitons from inherited parents
             const initsToStart = Object.keys(Root).filter(key => checkInit.test(key))
             //creates copy of instance so we don't add static or private variables
+            //if length of array is greather than zero, begin initializing sequenced functions for user
             if (initsToStart.length > 0) {
               initsToStart.forEach(name => {
                 const index = parseInt(name.slice(-1));
                 for (let prop in Root[name]) {
                   if (Root[name][prop] instanceof Function) {
                     Root[name][prop].call(Object.assign({}, deepAssign(newInst),
-                      _ref ? { static: Object.assign(Number.isNaN(index) ? _ref : Root["static" + index]) } : {},
+                      _staticRef ? { static: Number.isNaN(index) ? _staticRef : Root['static' + index] } : {},
                       _private ? { private: deepAssign(_private) } : {},
                       _protected ? { protected: deepAssign(_protected) } : {},
                       { _instance: deepAssign(newInst) }));
