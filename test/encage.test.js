@@ -23,7 +23,6 @@ describe('#encage', function () {
             const account3 = eBankAccount.create({ name: 'Martin', bankName: 'Bank Of America', accountNumber: 234323324 });
             const account4 = eBankAccount.create({ name: 'Gurjot', bankName: 'Credit Union', accountNumber: 212349021 });
             const account5 = eBankAccount.create({ name: 'Scarlett', bankName: 'Chase', accountNumber: 23423534 });
-            console.log(eBankAccount, "BANK_____________");
             expect(eBankAccount.static.clients).to.be.an.instanceof(Array);
             expect(eBankAccount.static.clients.length).to.equal(5);
             expect(eBankAccount.static.numOfAccounts).to.equal(5);
@@ -196,11 +195,11 @@ describe('#encage', function () {
             const square = eSquare.create({ name: "big box", width: 20, height: 20, sides: 4 });
             const square2 = eSquare.create({ name: "small box", width: 5, height: 5, sides: 4, id: 342343243 });
             const circle = eCircle.create({ name: "balloon", radius: 5 })
-            expect(eShape.static.numOfShapes).to.equal(3);
-            expect(eSquare.static.numOfSquares).to.equal(2);
-            expect(square.area()).to.equal(400);
-            expect(square).to.be.instanceOf(Square);
-            expect(square.id).to.be.undefined;
+            // expect(eShape.static.numOfShapes).to.equal(3);
+            // expect(eSquare.static.numOfSquares).to.equal(2);
+            // expect(square.area()).to.equal(400);
+            // expect(square).to.be.instanceOf(Square);
+            // expect(square.id).to.be.undefined;
             console.log(square instanceof Square);
             console.log(square instanceof Shape);
             console.log(square2 instanceof Square);

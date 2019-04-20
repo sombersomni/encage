@@ -7,6 +7,9 @@ function encage(Parent, options = { singleton: false }) {
   //keep track of the encage state for user specified options
   let state = { flag: 0, numOfChildren: 0 };
   let { flag, numOfChildren } = state;
+  if (typeof options != 'object' && !(options.constructor === Object)) {
+    throw new TypeError('You need to use an object for your options');
+  }
   if (Parent.inherited) {
     flag = flag ^ INHERITANCE_FLAG;
     numOfChildren = Parent.numOfChildren;
@@ -18,15 +21,12 @@ function encage(Parent, options = { singleton: false }) {
   if (Parent && Parent instanceof Function || isObject) {
     let Root = {};
     if (isObject) {
-      if ((flag & INHERITANCE_FLAG) === INHERITANCE_FLAG) {
-        Root = Object.assign(Object.create(Parent.prevPrototype.prototype), Parent);
-        delete Parent.prevPrototype;
-      } else {
-        Root =  Object.assign({}, Parent);
-      }
+      Root = Object.assign({}, Parent);
     } else {
       try {
         tempRoot = new Parent();
+        Root = Object.create(Parent.prototype);
+        console.log("ROOT", Root);
         Root['public'] = {};
         Object.getOwnPropertyNames(tempRoot).forEach(prop => {
           if (prop != 'private' && prop != 'protected' && prop != 'public' && !checkStatic.test(prop) && !checkInit.test(prop)) {
@@ -70,63 +70,69 @@ function encage(Parent, options = { singleton: false }) {
     }
     Encaged.prototype = Object.assign({}, {
       extend: function (Child, extendOpts = { allowInits: true }) {
+        if (typeof extendOpts != 'object' && !(extendOpts.constructor === Object)) {
+          throw new TypeError('You need to use an object for your options');
+        }
         //allows the user to inherit from base class
         //inheritance flag is set to 2;
-        numOfChildren++;
-        tempChild = {}
-        if (Child instanceof Function) {
-          tempChild = new Child();
-          tempChild['public'] = {};
-          for (let key in Child.prototype) {
-            tempChild['public'][key] = Child.prototype[key];
+        if (Child && Child instanceof Function || (typeof Child === 'object' && (Child.constructor === Object))) {
+          numOfChildren++;
+          let tempChild = {}
+          if (Child instanceof Function) {
+            tempChild = Object.create(new Child());
+            tempChild['public'] = {};
+            for (let key in Child.prototype) {
+              tempChild['public'][key] = Child.prototype[key];
+            }
+          } else {
+            //run instance and map it to temporary Child before adding inherited properties to it
+            tempChild = Object.create(Child);
           }
-        } else {
-          //run instance and map it to temporary Child before adding inherited properties to it
-          tempChild = Object.assign({}, Child);
-        }
-        Object.getOwnPropertyNames(tempChild).forEach(prop => {
-          if (prop != 'private' && prop != 'protected' && prop != 'public' && prop != 'static' && prop != 'init') {
-            //compounds temp props into public and deletes rest around object
-            tempChild['public'] = Object.assign(tempChild['public'], { [prop]: tempChild[prop] });
-            delete tempChild[prop];
-          }
-        });
-        //mapping items from Root object to new child object
-        const { allowInits } = extendOpts;
-        for (let setting in Root) {
-          if (setting != 'private') {
-            if (allowInits === true) {
-              if (setting === 'static') {
-                tempChild['static' + numOfChildren] = Object.assign(this.static);
-              }
-              else {
-                tempChild[setting != 'init' ? setting : setting + numOfChildren] = Object.assign({}, tempChild[setting], Root[setting]);
-              }
-            } else if (allowInits instanceof Array) {
-              if (setting === 'init') {
-                let allowed = {};
-                allowInits.forEach(each => {
-                  if (Root['init'].hasOwnProperty(each))
-                    allowed[each] = Object.assign({}, Root['init'][each]);
-                });
-                tempChild[setting + numOfChildren] = Object.assign({}, tempChild[setting], allowed);
-              } else if (setting === 'static') {
-                tempChild['static' + numOfChildren] = Object.assign(this.static);
+          Object.getOwnPropertyNames(tempChild).forEach(prop => {
+            if (prop != 'private' && prop != 'protected' && prop != 'public' && prop != 'static' && prop != 'init') {
+              //compounds temp props into public and deletes rest around object
+              tempChild['public'] = Object.assign(tempChild['public'], { [prop]: tempChild[prop] });
+              delete tempChild[prop];
+            }
+          });
+          //mapping items from Root object to new child object
+          const { allowInits } = extendOpts;
+          for (let setting in Root) {
+            if (setting != 'private') {
+              if (allowInits === true) {
+                if (setting === 'static') {
+                  tempChild['static' + numOfChildren] = Object.assign(this.static);
+                }
+                else {
+                  tempChild[setting != 'init' ? setting : setting + numOfChildren] = Object.assign({}, tempChild[setting], Root[setting]);
+                }
+              } else if (allowInits instanceof Array) {
+                if (setting === 'init') {
+                  let allowed = {};
+                  allowInits.forEach(each => {
+                    if (Root['init'].hasOwnProperty(each))
+                      allowed[each] = Object.assign({}, Root['init'][each]);
+                  });
+                  tempChild[setting + numOfChildren] = Object.assign({}, tempChild[setting], allowed);
+                } else if (setting === 'static') {
+                  tempChild['static' + numOfChildren] = Object.assign(this.static);
+                } else {
+                  tempChild[setting] = Object.assign({}, tempChild[setting], Root[setting]);
+                }
               } else {
-                tempChild[setting] = Object.assign({}, tempChild[setting], Root[setting]);
-              }
-            } else {
-              if (setting != 'init' && setting != 'static') {
-                tempChild[setting] = Object.assign({}, tempChild[setting], Root[setting]);
+                if (setting != 'init' && setting != 'static') {
+                  tempChild[setting] = Object.assign({}, tempChild[setting], Root[setting]);
+                }
               }
             }
           }
+          return encage(Object.assign(tempChild, { inherited: true, numOfChildren: numOfChildren, p: Child }));
         }
-        const newChild = Object.create(Child.prototype || {});
-        console.log(tempChild instanceof Child, "TRUEEE ");
-        return encage(Object.assign(tempChild, { inherited: true, numOfChildren: numOfChildren, prevPrototype: Child }));
       },
       create: function (constructArgs = {}, createOpts = { sealed: false, freeze: false }) {
+        if (typeof createOpts != 'object' && !(createOpts.constructor === Object)) {
+          throw new TypeError('You need to use an object for your options');
+        }
         //assign arguments from create to public and private set variables
         if ((typeof constructArgs === 'object' && constructArgs.constructor === Object)) {
           const publicProps = {};
@@ -165,6 +171,8 @@ function encage(Parent, options = { singleton: false }) {
             let newInst = {}
             if ((flag & INHERITANCE_FLAG) === INHERITANCE_FLAG) {
               newInst = Object.create(Parent, publicProps);
+              console.log("___CREATED NEW INSTANCE___");
+              console.log(newInst instanceof Parent.p);
             }
             else
               newInst = Object.create(isObject ? {} : Parent.prototype, publicProps);
