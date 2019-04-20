@@ -83,8 +83,7 @@ function encage(Parent) {
           tempChild['public'][_key4] = Child.prototype[_key4];
         }
 
-        var allowInits = extendOpts.allowInits;
-
+        let {allowInits} = extendOpts;
         for (var setting in Root) {
           if (setting != 'private') {
             if (allowInits === true) {
@@ -92,7 +91,6 @@ function encage(Parent) {
             } else if (allowInits instanceof Array) {
               if (setting === 'init') {
                 allowed = {};
-
                 for (var each in allowInits) {
                   if (Root['init'].hasOwnProperty(each)) {
                     allowed[each] = Root['init'][each];

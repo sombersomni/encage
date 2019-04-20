@@ -4,7 +4,7 @@ function deepAssign(obj) {
     // Freeze properties before freezing self
     for (let name of propNames) {
       const value = obj[name];
-      obj[name] = value && typeof value === "object" ? 
+      obj[name] = value && value.constructor && typeof value === "object" && value.constructor === Object ? 
         JSON.parse(JSON.stringify(value)) : value;
     }
     return Object.assign(obj);

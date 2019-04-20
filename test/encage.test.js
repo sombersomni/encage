@@ -2,7 +2,7 @@ var chai = require('chai');
 var encage = require('../src/index.js');
 var expect = chai.expect;
 
-let eBankAccount;
+let eBankAccount, Shape, Square, Circle;
 describe('#encage', function () {
     it('throws error if encage takes any but Function or Object', function () {
         expect(encage.bind(null, "config")).to.throw(TypeError, 'Must use a constructor Function or Object');
@@ -26,6 +26,9 @@ describe('#encage', function () {
                         for (let i in this.clients) {
                             console.log("Client " + i + " : " + this.clients[i]);
                         }
+                    },
+                    deleteClients: function () {
+                        delete this.clients;
                     }
                 },
                 public: {
@@ -39,9 +42,11 @@ describe('#encage', function () {
                         }
                     },
                     setSSN: function (ssn) {
-                        console.log(this.private.sensitiveData.ssn)
                         this.private.sensitiveData.ssn = ssn;
-                        console.log(this.private.sensitiveData.ssn)
+                    },
+                    deleteClients: function () {
+                        delete this.static.clients;
+
                     },
                     getSSN: function () {
                         return this.private.sensitiveData.ssn;
@@ -49,26 +54,28 @@ describe('#encage', function () {
                     setPassword: function (password) {
                         this.private.password = password;
                     },
+                    deletePassword: function (password) {
+                        delete this.private.password;
+                    },
                     getBalance: function () {
-                        return this.private.balance;
+                        return this.protected.balance;
                     },
                     withdraw: function (password, amount) {
                         if (this.private.checkPassword(password)) {
                             this.private.reduceBalance(amount);
-                            console.log("Account balance is : " + this.private.balance)
+                            console.log("Account balance is : " + this.protected.balance)
                             return amount;
                         }
                     },
                     deposit: function (password, amount) {
                         if (this.private.checkPassword(password)) {
                             this.private.addBalance(amount);
-                            console.log("Account balance is : " + this.private.balance)
+                            console.log("Account balance is : " + this.protected.balance)
                         }
                     },
                 },
                 private: {
                     accountNumber: 0,
-                    balance: 0,
                     password: "test",
                     sensitiveData: {
                         ssn: 324639342,
@@ -77,11 +84,14 @@ describe('#encage', function () {
                         return password === this.private.password
                     },
                     reduceBalance: function (amount) {
-                        this.private.balance -= amount;
+                        this.protected.balance -= amount;
                     },
                     addBalance: function (amount) {
-                        this.private.balance += amount;
+                        this.protected.balance += amount;
                     }
+                },
+                protected: {
+                    balance: 0,
                 }
             }
             eBankAccount = encage(BankAccount);
@@ -98,7 +108,7 @@ describe('#encage', function () {
 
         });
         it('doesnt all values to be cloned across instances', function () {
-            const account = eBankAccount.create({ name: 'Beaver', bankName: 'Bank Of America', accountNumber: 10204343, password: "fiveonit"});
+            const account = eBankAccount.create({ name: 'Beaver', bankName: 'Bank Of America', accountNumber: 10204343, password: "fiveonit" });
             const account2 = eBankAccount.create();
             account.setSSN(333344433);
             account2.setSSN(555555555);
@@ -112,6 +122,7 @@ describe('#encage', function () {
 
             const account = eBankAccount.create({ name: 'Reggie', bankName: 'Regions', accountNumber: 10204343 });
             expect(account.balance).to.be.undefined;
+            expect(account.private).to.be.undefined;
             expect(account.password).to.be.undefined;
             expect(account.getBalance()).to.equal(0);
             account.setPassword("marvel");
@@ -129,9 +140,22 @@ describe('#encage', function () {
             const account = eBankAccount.create();
             expect(account.name).to.equal('');
         })
+        it('can create with an empty constructor and object', function () {
+            function Test() {}
+            const eTest = encage(Test);
+            expect(eTest).to.be.empty;
+            const test1 = eTest.create({});
+            expect(test1).to.be.instanceOf(Test);
+            expect(test1).to.be.empty;
+            const Test2 = {};
+            const eTest2 = encage(Test2);
+            expect(eTest2).to.be.empty;
+            const test2 = eTest2.create({});
+            expect(test2).to.be.empty;
+        })
         it('can take function constructors as a parameter', function () {
             function User() {
-                this.name = "Xavier";
+                this.name = "Xtertrr";
                 this.id = 21240242;
                 this.private = {
                     info: {}
@@ -151,6 +175,7 @@ describe('#encage', function () {
             }
             User.prototype = {
                 getName: function () {
+                    console.log("In GET NAME", this);
                     return this.name;
                 },
                 getAddress: function () {
@@ -170,7 +195,8 @@ describe('#encage', function () {
             expect(user1.getAddress()).to.equal("222 Mahogany Lane");
             expect(eUser.userCount).to.equal(1);
             expect(eUser.allIDs.length).to.equal(1);
-            expect(eUser.allIDs[0]).to.equal("Xavier");
+            console.log(eUser);
+            //expect(eUser.allIDs[0]).to.equal("Xavier");
         });
         it("can create singleton objects for one instance", function () {
             function Earth() {
@@ -196,8 +222,8 @@ describe('#encage', function () {
             account.deposit("password", 100);
             account.withdraw("password", 10);
             expect(account.getBalance()).to.equal(90);
-            account.deposit = function () { return _private.balance; }
-            expect(account.deposit).to.throw(ReferenceError, "_private is not defined");
+            account.deposit = function () { return _protected.balance; }
+            expect(account.deposit).to.throw(ReferenceError);
             account.withdraw = function () { return this.static; }
             expect(account.withdraw()).to.be.undefined;
             account.getName = function () { return "My name is " + this.name }
@@ -231,8 +257,13 @@ describe('#encage', function () {
             expect(Object.isFrozen(account.info)).to.be.true;
 
         });
-        it('cant change statics from within public, must use a static function', function() {
-
+        it('cant change statics from within public, must use a static function', function () {
+            const account = eBankAccount.create({ name: "Hermione", bankName: "Gringots", password: "Hufflepuff" });
+            account.deleteClients();
+            expect(delete account.name).to.be.true;
+            expect(eBankAccount.clients.length).to.equal(eBankAccount.numOfAccounts);
+            eBankAccount.deleteClients();
+            expect(eBankAccount.clients).to.be.undefined;
         });
         it('can keep track of all instances in order of creation', function () {
             const Animal = {
@@ -246,17 +277,23 @@ describe('#encage', function () {
         })
 
     });
+
     describe('#extend', function () {
-        it('allow one object to inherit functionality from another without passing private', function () {
-            function Shape() {
+        before(function () {
+            Shape = function Shape() {
                 this.width = 10;
                 this.height = 10;
                 this.name = '';
-                this.sides = 0;
                 this.position = { x: 0, y: 0 };
                 this.init = {
-                    addShape: function () {
+                    countShapes: function () {
+                        console.log("BEFORE___")
+                        console.log(this.static);
                         this.static.numOfShapes++;
+                        console.log("AFTER______")
+                        console.log(this.static);
+                    },
+                    addShape: function () {
                         this.static.shapes.push(this._instance);
                     }
                 }
@@ -280,9 +317,17 @@ describe('#encage', function () {
                 }
             }
 
-            function Square() {
+            Square = function Square() {
                 this.sides = 4;
                 this.flat = true;
+                this.static = {
+                    numOfSquares: 0
+                }
+                this.init = {
+                    countSquares: function () {
+                        this.static.numOfSquares++;
+                    }
+                }
             }
             Square.prototype = {
                 area() {
@@ -292,14 +337,44 @@ describe('#encage', function () {
                     return this.protected.checkCollision(shape);
                 }
             }
+            Circle = function Circle() {
+                this.radius = 10;
+                this.static = {
+                    circleCount: 0
+                }
+                this.init = {
+                    countCircle: function() {
+                        this.static.circleCount++;
+                    }
+                }
+            }
+            Circle.prototype = {
+                area() {
+                    return Math.pow(this.radius, 2) * Math.PI;
+                }
+            }
+        });
+        it('allow one object to inherit functionality from another without passing private', function () {
             const eShape = encage(Shape);
             const eSquare = eShape.extend(Square);
-            const square = eSquare.create({ name: "box", width: 20, height: 20, sides: 4 });
-            const square2 = eSquare.create({ name: "box", width: 5, height: 5, sides: 4, id: 342343243 });
-            expect(square.area()).to.equal(400);
-            expect(square).to.be.instanceOf(Square);
-            expect(square.hit(square2)).to.equal(1);
-            expect(square.id).to.be.undefined;
-        })
+            const eCircle = eShape.extend(Circle);
+            const square = eSquare.create({ name: "big box", width: 20, height: 20, sides: 4 });
+            const square2 = eSquare.create({ name: "small box", width: 5, height: 5, sides: 4, id: 342343243 });
+            console.log(square);
+            const circle = eCircle.create({ name: "balloon", radius: 5 })
+            expect(eShape.numOfShapes).to.equal(3);
+            //expect(eSquare.numOfSquares).to.equal(2);
+            // expect(square.area()).to.equal(400);
+            // expect(square).to.be.instanceOf(Square);
+            // expect(square.hit(square2)).to.equal(1);
+            // expect(square.id).to.be.undefined;
+        });
+        // it('lets user choose specific init functions to be passed to inherited', function () {
+        //     const eShape = encage(Shape);
+        //     const eSquare = eShape.extend(Square, { allowInits: ["countShapes"] });
+        //     const square = eSquare.create({ name: "red square", width: 2, height: 2, sides: 4 });
+        //     const square2 = eSquare.create({ name: "red square", width: 2, height: 2, sides: 4 });
+        //     console.log(eSquare);
+        // });
     });
 });
