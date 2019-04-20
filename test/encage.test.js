@@ -31,6 +31,21 @@ describe('#encage', function () {
                 public: {
                     name: '',
                     bankName: 'regions',
+                    info: {
+                        address: "333 Pickadrive Ln",
+                        coordinates: {
+                            longitude: "21 324",
+                            lattitude: "3423 32432"
+                        }
+                    },
+                    setSSN: function (ssn) {
+                        console.log(this.private.sensitiveData.ssn)
+                        this.private.sensitiveData.ssn = ssn;
+                        console.log(this.private.sensitiveData.ssn)
+                    },
+                    getSSN: function () {
+                        return this.private.sensitiveData.ssn;
+                    },
                     setPassword: function (password) {
                         this.private.password = password;
                     },
@@ -55,6 +70,9 @@ describe('#encage', function () {
                     accountNumber: 0,
                     balance: 0,
                     password: "test",
+                    sensitiveData: {
+                        ssn: 324639342,
+                    },
                     checkPassword: function (password) {
                         return password === this.private.password
                     },
@@ -78,6 +96,17 @@ describe('#encage', function () {
             expect(eBankAccount.clients.length).to.equal(5);
             expect(eBankAccount.numOfAccounts).to.equal(5);
 
+        });
+        it('doesnt all values to be cloned across instances', function () {
+            const account = eBankAccount.create({ name: 'Beaver', bankName: 'Bank Of America', accountNumber: 10204343, password: "fiveonit"});
+            const account2 = eBankAccount.create();
+            account.setSSN(333344433);
+            account2.setSSN(555555555);
+            account.info.address = "4888 Fake Dr";
+            expect(account.getSSN()).to.equal(333344433)
+            expect(account2.getSSN()).to.equal(555555555)
+            expect(account.info.address).to.equal("4888 Fake Dr");
+            expect(account2.info.address).to.equal("333 Pickadrive Ln");
         });
         it('can change private variables while keeping them unreachable', function () {
 
@@ -158,14 +187,12 @@ describe('#encage', function () {
             const earth = eEarth.create();
             expect(earth.description()).to.equal("Big blue ball floating in space");
             expect(earth).to.be.instanceOf(Earth);
-            console.log(earth);
             expect(earth).to.be.an('object');
             const earth2 = eEarth.create();
             expect(earth2).to.be.null;
         });
-        it('can allow for overwritten functions but only for public vars', function() {
-            const account = eBankAccount.create({ name: "Melissa", bankName: "Chase", password: "password"});
-            console.log(account);
+        it('can allow for overwritten functions but only for public vars', function () {
+            const account = eBankAccount.create({ name: "Melissa", bankName: "Chase", password: "password" });
             account.deposit("password", 100);
             account.withdraw("password", 10);
             expect(account.getBalance()).to.equal(90);
@@ -173,14 +200,38 @@ describe('#encage', function () {
             expect(account.deposit).to.throw(ReferenceError, "_private is not defined");
             account.withdraw = function () { return this.static; }
             expect(account.withdraw()).to.be.undefined;
-            account.getName = function () { return "My name is " + this.name}
+            account.getName = function () { return "My name is " + this.name }
             expect(account.getName()).to.equal("My name is Melissa");
         });
-        it('allows all instances to be sealed so no other properties can be added', function() {
-            const account = eBankAccount.create({ name: "Hermione", bankName: "Gringots", password: "Hufflepuff"}, { sealed: true });
+        it('allows all instances to be sealed so no other properties can be added but changes can be made to objects', function () {
+            const account = eBankAccount.create({ name: "Harry", bankName: "Gringots", password: "Griffindor" }, { sealed: true });
             expect(Object.isSealed(account)).to.be.true;
+            expect(Object.isExtensible(account)).to.be.false;
             account.location = "UK";
             expect(account.location).to.be.undefined;
+            expect(account.name).to.equal("Harry");
+            account.name = "Ron";
+            account.info.address = "blah blah";
+            account.info.coordinates.longitude = '35 67';
+
+
+        });
+        it('allows all instances to be frozen so no changes can be made', function () {
+            const account = eBankAccount.create({ name: "Hermione", bankName: "Gringots", password: "Hufflepuff" }, { freeze: true });
+            expect(Object.isFrozen(account)).to.be.true;
+            expect(Object.isExtensible(account)).to.be.false;
+            function deleteName() {
+                "use strict";
+                delete account.name
+            };
+            expect(deleteName).to.throw(TypeError);
+            expect(account.name).to.equal("Hermione");
+            account.name = "Juno";
+            expect(account.name).to.equal("Hermione");
+            expect(Object.isFrozen(account.info)).to.be.true;
+
+        });
+        it('cant change statics from within public, must use a static function', function() {
 
         });
         it('can keep track of all instances in order of creation', function () {
@@ -202,7 +253,7 @@ describe('#encage', function () {
                 this.height = 10;
                 this.name = '';
                 this.sides = 0;
-                this.position= { x: 0, y: 0 };
+                this.position = { x: 0, y: 0 };
                 this.init = {
                     addShape: function () {
                         this.static.numOfShapes++;
@@ -218,9 +269,9 @@ describe('#encage', function () {
                 }
                 this.protected = {
                     checkCollision: function (shape) {
-                        if(shape instanceof Square) {
+                        if (shape instanceof Square) {
                             if (this.position.x === shape.position.x)
-                                return 1; 
+                                return 1;
                             else return 2;
                         } else {
                             return 0;

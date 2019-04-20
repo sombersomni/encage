@@ -1,4 +1,6 @@
-var { SINGLETON_FLAG } = require("./helpers/flags");
+const deepFreeze = require("./helpers/deepfreeze");
+const deepAssign = require("./helpers/deepAssign");
+let { SINGLETON_FLAG } = require("./helpers/flags");
 
 //this function is using closures to keep private variables and public variables intact and managable
 function encage(Parent, options = { singleton: false }) {
@@ -23,7 +25,6 @@ function encage(Parent, options = { singleton: false }) {
         for (let key in Parent.prototype) {
           Root['public'][key] = Parent.prototype[key];
         }
-        Root = Object.freeze(Root);
       } catch (err) {
         console.warn("make sure to use a constructor function")
       }
@@ -49,6 +50,7 @@ function encage(Parent, options = { singleton: false }) {
     }
     Encaged.prototype = Object.assign({}, {
       extend: function (Child, extendOpts = { allowInits: true }) {
+        //allows the user to inherit from base class
         tempChild = Object.create(new Child());
         tempChild['public'] = {};
         for (let key in Child.prototype) {
@@ -111,11 +113,12 @@ function encage(Parent, options = { singleton: false }) {
           }
           //setup for private and protected state
           //sealing private so it can't be deleted from the outside.
-          let _private = Object.seal(Object.assign({}, Root.private));
+          let _private = Object.assign({}, Root.private);
           //sealing protected so it can't be deleted from the outside.
-          let _protected = Object.seal(Object.assign({}, Root.protected));
+          let _protected = Object.assign({}, Root.protected);
           //creates a new instance to configure before returning to user
-          const initialize = () => {
+          function initialize() {
+            let _ref = this;
             let newInst = {}
             if (options.inherited)
               newInst = Object.create(Parent, publicProps);
@@ -127,10 +130,10 @@ function encage(Parent, options = { singleton: false }) {
                 if (_private[prop] instanceof Function) {
                   const tempFn = _private[prop];
                   _private[prop] = function () {
-                    return tempFn.apply(Object.assign({}, newInst,
-                      Root.static ? { static: Object.seal(Object.assign({}, this)) } : {},
-                      { private: Object.assign(_private) },
-                      _protected ? { protected: Object.assign(_protected) } : {}), arguments);
+                    return tempFn.apply(Object.assign({}, deepAssign(newInst),
+                      Root.static ? { static: Object.seal(Object.assign({}, _ref)) } : {},
+                      { private: deepAssign(_private) },
+                      _protected ? { protected: deepAssign(_protected) } : {}), arguments);
                   }
                 }
               }
@@ -140,10 +143,10 @@ function encage(Parent, options = { singleton: false }) {
                 if (_protected[prop] instanceof Function) {
                   const tempFn = _protected[prop];
                   _protected[prop] = function () {
-                    return tempFn.apply(Object.assign({}, newInst,
-                      Root.static ? { static: Object.seal(Object.assign({}, this)) } : {},
-                      { private: Object.assign(_private) },
-                      { protected: Object.assign(_protected) }), arguments);
+                    return tempFn.apply(Object.assign({}, deepAssign(newInst),
+                      Root.static ? { static: Object.seal(Object.assign({}, _ref)) } : {},
+                      { private: deepAssign(_private) },
+                      { protected: deepAssign(_protected) }), arguments);
                   }
                 }
               }
@@ -152,10 +155,10 @@ function encage(Parent, options = { singleton: false }) {
               filteredOutArgsPublic.forEach(prop => {
                 if (Root.public[prop] instanceof Function) {
                   newInst[prop] = function () {
-                    return Root.public[prop].apply(Object.assign({}, newInst,
-                      Root.static ? { static: Object.seal(Object.assign({}, this)) } : {},
-                      _private ? { private: Object.assign(_private) } : {},
-                      _protected ? { protected: Object.assign(_protected) } : {}), arguments);
+                    return Root.public[prop].apply(Object.assign({}, deepAssign(this),
+                      Root.static ? { static: Object.seal(Object.assign({}, _ref)) } : {},
+                      _private ? { private: deepAssign(_private) } : {},
+                      _protected ? { protected: deepAssign(_protected) } : {}), arguments);
                   }
                 } else {
                   newInst[prop] = Root.public[prop];
@@ -166,10 +169,10 @@ function encage(Parent, options = { singleton: false }) {
             if (Root.init) {
               for (prop in Root.init) {
                 if (Root.init[prop] instanceof Function) {
-                  Root.init[prop].call(Object.assign({}, newInst,
-                    Root.static ? { static: Object.assign(this) } : {},
-                    _private ? { private: Object.assign(_private) } : {},
-                    _protected ? { protected: Object.assign(_protected) } : {},
+                  Root.init[prop].call(Object.assign({}, deepAssign(newInst),
+                    Root.static ? { static: Object.assign(_ref) } : {},
+                    _private ? { private: deepAssign(_private) } : {},
+                    _protected ? { protected: deepAssign(_protected) } : {},
                     { _instance: Object.seal(Object.create(newInst)) }));
                 }
               }
@@ -177,7 +180,7 @@ function encage(Parent, options = { singleton: false }) {
             if (createOpts.sealed) {
               newInst = Object.seal(newInst);
             } else if (createOpts.freeze) {
-              newInst = Object.freeze(newInst);
+              newInst = deepFreeze(newInst);
             }
             //flips singleton flag so it will no longer create instances
             if (options.singleton) {
@@ -188,7 +191,7 @@ function encage(Parent, options = { singleton: false }) {
               return encageState.flag & 1 ? null : newInst;
             }
           }
-          return initialize();
+          return initialize.call(this);
         } else throw new TypeError('Argument must be an object for create');
       }
     }, _static.methods);
