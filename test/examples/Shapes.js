@@ -8,7 +8,7 @@ function Shape() {
             this.static.numOfShapes++;
         },
         addShape: function () {
-            this.static.shapes.push(this._instance);
+            this.static.shapes.push(this.name);
         }
     }
     this.static = {
@@ -19,6 +19,7 @@ function Shape() {
         id: 201232131
     }
     this.protected = {
+        matrix: [0,0,2],
         checkCollision: function (shape) {
             if (this.position.x === shape.position.x)
                 return 1;
@@ -30,6 +31,15 @@ function Shape() {
 Shape.prototype = {
     move: function () {
         this.position.x++;
+    },
+    checkID: function () {
+        return this.private.id;
+    },
+    getMatrix: function () {
+        return this.protected.matrix;
+    },
+    setMatrix: function (number) {
+        this.protected.matrix.push(number);
     }
 }
 
@@ -72,5 +82,27 @@ Circle.prototype = {
         return Math.pow(this.radius, 2) * Math.PI;
     }
 }
+function Ellipse() {
+    this.static = {
+        ellipseCount: 0
+    }
+    this.init = {
+        countEllipse: function () {
+            this.static.countEllipse++;
+        }
+    }
+    this.epsilon = 67;
+    this.width = 24;
+    this.height = 99;
+    this.private = {
+        test: 2
+    }
+}
 
-module.exports = { Shape, Square, Circle };
+Ellipse.prototype = {
+    area() {
+        return Math.pow(this.radius, 2) * Math.PI;
+    }
+};
+
+module.exports = { Shape, Square, Circle, Ellipse };

@@ -4,8 +4,11 @@ var expect = chai.expect;
 
 //test objects and constructors
 const BankAccount = require('./examples/BankAccount');
-const {Shape, Square, Circle} = require('./examples/Shapes');
+const { Shape, Square, Circle, Ellipse } = require('./examples/Shapes');
+const { Character, Player, Slime, Enemy } = require('./examples/Game');
 const User = require('./examples/User');
+const Earth = require('./examples/Earth');
+
 let eBankAccount;
 describe('#encage', function () {
     it('throws error if encage takes any but Function or Object', function () {
@@ -29,7 +32,7 @@ describe('#encage', function () {
             expect(eBankAccount.static.numOfAccounts).to.equal(5);
 
         });
-        it('doesnt all values to be cloned across instances', function () {
+        it('doesnt allow values to be cloned across instances', function () {
             const account = eBankAccount.create({ name: 'Beaver', bankName: 'Bank Of America', accountNumber: 10204343, password: "fiveonit" });
             const account2 = eBankAccount.create();
             account.setSSN(333344433);
@@ -103,15 +106,6 @@ describe('#encage', function () {
             expect(user4).to.be.instanceOf(User);
         });
         it("can create singleton objects for one instance", function () {
-            function Earth() {
-                this.population = 21424214;
-                this.size = 35353035;
-            }
-            Earth.prototype = {
-                description() {
-                    return "Big blue ball floating in space"
-                }
-            }
             const options = { singleton: true };
             const eEarth = encage(Earth, options);
             const earth = eEarth.create();
@@ -186,15 +180,25 @@ describe('#encage', function () {
             expect(square.hit(square2)).to.equal(1);
 
         });
-        it('keeps instances of base class tied to istanceof Base', function () {
+        it('keeps instances of base class tied to istanceof Base and Parent Class', function () {
+
             const eShape = encage(Shape);
             const eCircle = eShape.extend(Circle);
-            const circle = eCircle.create();
-            const circle2 = eCircle.create();
-            const circle3 = eCircle.create();
+            const eEllipse = eCircle.extend(Ellipse)
+            const circle = eCircle.create({name: "circle1"});
+            const circle2 = eCircle.create({name: "circle2"});
+            const circle3 = eCircle.create({name: "circle3"});
+            const ellipse = eEllipse.create({name: "ellipse"});
             expect(circle).to.be.instanceOf(Circle);
             expect(circle2).to.be.instanceOf(Circle);
             expect(circle3).to.be.instanceOf(Circle);
+            expect(circle).to.be.instanceOf(Shape);
+            expect(circle2).to.be.instanceOf(Shape);
+            expect(circle3).to.be.instanceOf(Shape);
+            console.log(ellipse instanceof Ellipse, ellipse instanceof Circle, ellipse instanceof Shape);
+            console.log("__CHECKING TEST_______");
+            console.log(eShape);
+
         });
         it('lets user choose specific init functions to be passed to inherited', function () {
             const eShape = encage(Shape);
@@ -210,8 +214,16 @@ describe('#encage', function () {
             expect(eCircle.static.circleCount).to.equal(1);
             expect(eShape.static.numOfShapes).to.equal(1);
             expect(eShape.static.shapes.length).to.equal(0);
-            console.log("AFTER TEST");
-            console.log(eShape);
+        });
+        it('can use objects in inheritance', function () {
+            const eCharacter = encage(Character);
+            const eEnemy= eCharacter.extend(Enemy);
+            const eSlime = eEnemy.extend(Slime);
+            const slime = eSlime.create({name: "silver slime", color: "silver", health: 40, info: { description: "slimer moves slow "}});
+            console.log(slime);
+            console.log(eCharacter);
+            console.log(eEnemy);
+            console.log(eSlime);
         });
     });
 });
