@@ -4,7 +4,8 @@ var expect = chai.expect;
 
 //test objects and constructors
 const BankAccount = require('./examples/BankAccount');
-const {Shape, Square, Circle} = require('./examples/Shapes')
+const {Shape, Square, Circle} = require('./examples/Shapes');
+const User = require('./examples/User');
 let eBankAccount;
 describe('#encage', function () {
     it('throws error if encage takes any but Function or Object', function () {
@@ -75,33 +76,6 @@ describe('#encage', function () {
             expect(test2).to.be.empty;
         })
         it('can take function constructors as a parameter', function () {
-            function User() {
-                this.name = "Xtertrr";
-                this.id = 21240242;
-                this.private = {
-                    info: {}
-                }
-                this.static = {
-                    userCount: 0,
-                    allIDs: []
-                }
-                this.init = {
-                    upCount: function () {
-                        this.static.userCount++;
-                    },
-                    addIDS: function () {
-                        this.static.allIDs.push(this.name);
-                    }
-                }
-            }
-            User.prototype = {
-                getName: function () {
-                    return this.name;
-                },
-                getAddress: function () {
-                    return this.private.info.address;
-                }
-            }
             const eUser = encage(User);
             const user1 = eUser.create({
                 name: "Xavier",
@@ -116,6 +90,17 @@ describe('#encage', function () {
             expect(eUser.static.userCount).to.equal(1);
             expect(eUser.static.allIDs.length).to.equal(1);
             expect(eUser.static.allIDs[0]).to.equal("Xavier");
+        });
+        it('can create instances that can be referenced back to initial Class', function () {
+            const eUser = encage(User);
+            const user1 = eUser.create({ name: "Homer" });
+            const user2 = eUser.create({ name: "Lisa" });
+            const user3 = eUser.create({ name: "Apu" });
+            const user4 = eUser.create({ name: "Moe" });
+            expect(user1).to.be.instanceOf(User);
+            expect(user2).to.be.instanceOf(User);
+            expect(user3).to.be.instanceOf(User);
+            expect(user4).to.be.instanceOf(User);
         });
         it("can create singleton objects for one instance", function () {
             function Earth() {
@@ -191,19 +176,25 @@ describe('#encage', function () {
         it('allow one object to inherit functionality from another without passing private', function () {
             const eShape = encage(Shape);
             const eSquare = eShape.extend(Square);
-            const eCircle = eShape.extend(Circle);
-            const square = eSquare.create({ name: "big box", width: 20, height: 20, sides: 4 });
+            const square = eSquare.create({ name: "first box" });
             const square2 = eSquare.create({ name: "small box", width: 5, height: 5, sides: 4, id: 342343243 });
-            const circle = eCircle.create({ name: "balloon", radius: 5 })
-            // expect(eShape.static.numOfShapes).to.equal(3);
-            // expect(eSquare.static.numOfSquares).to.equal(2);
-            // expect(square.area()).to.equal(400);
-            // expect(square).to.be.instanceOf(Square);
-            // expect(square.id).to.be.undefined;
-            console.log(square instanceof Square);
-            console.log(square instanceof Shape);
-            console.log(square2 instanceof Square);
-            console.log(square2 instanceof Shape);
+            expect(eShape.static.numOfShapes).to.equal(2);
+            expect(eSquare.static.numOfSquares).to.equal(2);
+            expect(square.area()).to.equal(225);
+            expect(square).to.be.instanceOf(Square);
+            expect(square.id).to.be.undefined;
+            expect(square.hit(square2)).to.equal(1);
+
+        });
+        it('keeps instances of base class tied to istanceof Base', function () {
+            const eShape = encage(Shape);
+            const eCircle = eShape.extend(Circle);
+            const circle = eCircle.create();
+            const circle2 = eCircle.create();
+            const circle3 = eCircle.create();
+            expect(circle).to.be.instanceOf(Circle);
+            expect(circle2).to.be.instanceOf(Circle);
+            expect(circle3).to.be.instanceOf(Circle);
         });
         // it('lets user choose specific init functions to be passed to inherited', function () {
         //     const eShape = encage(Shape);

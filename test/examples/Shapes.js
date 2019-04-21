@@ -5,7 +5,6 @@ function Shape() {
     this.position = { x: 0, y: 0 };
     this.init = {
         countShapes: function () {
-            console.log("Add Shapes", this.static)
             this.static.numOfShapes++;
         },
         addShape: function () {
@@ -35,6 +34,8 @@ Shape.prototype = {
 }
 
 function Square() {
+    this.width = 15;
+    this.height = 15;
     this.sides = 4;
     this.flat = true;
     this.static = {

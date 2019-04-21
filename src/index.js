@@ -26,7 +26,6 @@ function encage(Parent, options = { singleton: false }) {
       try {
         tempRoot = new Parent();
         Root = Object.create(Parent.prototype);
-        console.log("ROOT", Root);
         Root['public'] = {};
         Object.getOwnPropertyNames(tempRoot).forEach(prop => {
           if (prop != 'private' && prop != 'protected' && prop != 'public' && !checkStatic.test(prop) && !checkInit.test(prop)) {
@@ -79,7 +78,7 @@ function encage(Parent, options = { singleton: false }) {
           numOfChildren++;
           let tempChild = {}
           if (Child instanceof Function) {
-            tempChild = Object.create(new Child());
+            tempChild = new Child();
             tempChild['public'] = {};
             for (let key in Child.prototype) {
               tempChild['public'][key] = Child.prototype[key];
@@ -104,7 +103,7 @@ function encage(Parent, options = { singleton: false }) {
                   tempChild['static' + numOfChildren] = Object.assign(this.static);
                 }
                 else {
-                  tempChild[setting != 'init' ? setting : setting + numOfChildren] = Object.assign({}, tempChild[setting], Root[setting]);
+                  tempChild[setting != 'init' ? setting : setting + numOfChildren] = Object.assign({}, Root[setting], tempChild[setting]);
                 }
               } else if (allowInits instanceof Array) {
                 if (setting === 'init') {
@@ -113,15 +112,15 @@ function encage(Parent, options = { singleton: false }) {
                     if (Root['init'].hasOwnProperty(each))
                       allowed[each] = Object.assign({}, Root['init'][each]);
                   });
-                  tempChild[setting + numOfChildren] = Object.assign({}, tempChild[setting], allowed);
+                  tempChild[setting + numOfChildren] = Object.assign({}, allowed, tempChild[setting]);
                 } else if (setting === 'static') {
                   tempChild['static' + numOfChildren] = Object.assign(this.static);
                 } else {
-                  tempChild[setting] = Object.assign({}, tempChild[setting], Root[setting]);
+                  tempChild[setting] = Object.assign({}, Root[setting], tempChild[setting]);
                 }
               } else {
                 if (setting != 'init' && setting != 'static') {
-                  tempChild[setting] = Object.assign({}, tempChild[setting], Root[setting]);
+                  tempChild[setting] = Object.assign({}, Root[setting], tempChild[setting]);
                 }
               }
             }
@@ -166,17 +165,15 @@ function encage(Parent, options = { singleton: false }) {
           //sealing protected so it can't be deleted from the outside.
           let _protected = Object.assign({}, Root.protected);
           //creates a new instance to configure before returning to user
+          let newInst = {};
           function initialize() {
-            let _staticRef = this.static;
-            let newInst = {}
             if ((flag & INHERITANCE_FLAG) === INHERITANCE_FLAG) {
               newInst = Object.create(Parent, publicProps);
-              console.log("___CREATED NEW INSTANCE___");
-              console.log(newInst instanceof Parent.p);
             }
             else
               newInst = Object.create(isObject ? {} : Parent.prototype, publicProps);
             //maps all functions to instance and private/static variables using apply
+            let _staticRef = this.static;
             if (_private) {
               for (let prop in _private) {
                 if (_private[prop] instanceof Function) {
@@ -240,10 +237,7 @@ function encage(Parent, options = { singleton: false }) {
             } else if (createOpts.freeze) {
               newInst = deepFreeze(newInst);
             }
-            //turn off inhertiance flag
-            if ((flag & INHERITANCE_FLAG) === INHERITANCE_FLAG) {
-              flag = flag ^ INHERITANCE_FLAG;
-            }
+            
             //flips singleton flag so it will no longer create instances
             if (options.singleton) {
               flag = flag ^ SINGLETON_FLAG;
