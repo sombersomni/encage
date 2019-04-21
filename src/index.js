@@ -61,6 +61,7 @@ function encage(Parent, options = { singleton: false }) {
         this.static[key] = _static.variables[key];
       }
       for (let key in _static.methods) {
+        //binding to make sure the context is kept inside this class
         this.static[key] = this[key].bind(this);
       }
 
@@ -74,10 +75,13 @@ function encage(Parent, options = { singleton: false }) {
         }
         //allows the user to inherit from base class
         //inheritance flag is set to 2;
+        console.log("Before extending___________");
+        console.log(this);
         if (Child && Child instanceof Function || (typeof Child === 'object' && (Child.constructor === Object))) {
           numOfChildren++;
           let tempChild = {}
           if (Child instanceof Function) {
+            //relegates this.variables into temps public object for reorganization later
             tempChild = new Child();
             tempChild['public'] = {};
             for (let key in Child.prototype) {
@@ -103,16 +107,21 @@ function encage(Parent, options = { singleton: false }) {
                   tempChild['static' + numOfChildren] = Object.assign(this.static);
                 }
                 else {
-                  tempChild[setting != 'init' ? setting : setting + numOfChildren] = Object.assign({}, Root[setting], tempChild[setting]);
+                  if (setting != 'init') {
+                    tempChild[setting] = Object.assign({}, Root[setting], tempChild[setting]);
+                  } else {
+                    tempChild[setting + numOfChildren] = Object.assign({}, Root[setting]);
+                  }
                 }
               } else if (allowInits instanceof Array) {
                 if (setting === 'init') {
                   let allowed = {};
                   allowInits.forEach(each => {
-                    if (Root['init'].hasOwnProperty(each))
-                      allowed[each] = Object.assign({}, Root['init'][each]);
+                    if (Root['init'].hasOwnProperty(each)) {
+                      allowed[each] = Root['init'][each];
+                    }
                   });
-                  tempChild[setting + numOfChildren] = Object.assign({}, allowed, tempChild[setting]);
+                  tempChild[setting + numOfChildren] = Object.assign({}, allowed);
                 } else if (setting === 'static') {
                   tempChild['static' + numOfChildren] = Object.assign(this.static);
                 } else {
@@ -125,7 +134,9 @@ function encage(Parent, options = { singleton: false }) {
               }
             }
           }
-          return encage(Object.assign(tempChild, { inherited: true, numOfChildren: numOfChildren, p: Child }));
+          console.log("AFTER EXTENDING__________");
+          console.log(this);
+          return encage(Object.assign(tempChild, { inherited: true, numOfChildren: numOfChildren, root: Object.assign(this)}));
         }
       },
       create: function (constructArgs = {}, createOpts = { sealed: false, freeze: false }) {
@@ -166,88 +177,91 @@ function encage(Parent, options = { singleton: false }) {
           let _protected = Object.assign({}, Root.protected);
           //creates a new instance to configure before returning to user
           let newInst = {};
-          function initialize() {
-            if ((flag & INHERITANCE_FLAG) === INHERITANCE_FLAG) {
-              newInst = Object.create(Parent, publicProps);
-            }
-            else
-              newInst = Object.create(isObject ? {} : Parent.prototype, publicProps);
-            //maps all functions to instance and private/static variables using apply
-            let _staticRef = this.static;
-            if (_private) {
-              for (let prop in _private) {
-                if (_private[prop] instanceof Function) {
-                  const tempFn = _private[prop];
-                  _private[prop] = function () {
-                    return tempFn.apply(Object.assign({}, deepAssign(newInst),
-                      _staticRef ? { static: deepFreeze(Object.create(_staticRef)) } : {},
-                      { private: deepAssign(_private) },
-                      _protected ? { protected: deepAssign(_protected) } : {}), arguments);
-                  }
+          if ((flag & INHERITANCE_FLAG) === INHERITANCE_FLAG) {
+            newInst = Object.create(Parent, publicProps);
+          }
+          else
+            newInst = Object.create(isObject ? {} : Parent.prototype, publicProps);
+          //maps all functions to instance and private/static variables using apply
+          let _staticRef = this.static;
+          if (_private) {
+            for (let prop in _private) {
+              if (_private[prop] instanceof Function) {
+                const tempFn = _private[prop];
+                _private[prop] = function () {
+                  return tempFn.apply(Object.assign({}, deepAssign(newInst),
+                    _staticRef ? { static: deepFreeze(Object.create(_staticRef)) } : {},
+                    { private: deepAssign(_private) },
+                    _protected ? { protected: deepAssign(_protected) } : {}), arguments);
                 }
               }
-            }
-            if (_protected) {
-              for (let prop in _protected) {
-                if (_protected[prop] instanceof Function) {
-                  const tempFn = _protected[prop];
-                  _protected[prop] = function () {
-                    return tempFn.apply(Object.assign({}, deepAssign(newInst),
-                      _staticRef ? { static: deepFreeze(Object.create(_staticRef)) } : {},
-                      { private: deepAssign(_private) },
-                      { protected: deepAssign(_protected) }), arguments);
-                  }
-                }
-              }
-            }
-            if (Root.public) {
-              filteredOutArgsPublic.forEach(prop => {
-                if (Root.public[prop] instanceof Function) {
-                  newInst[prop] = function () {
-                    return Root.public[prop].apply(Object.assign({}, deepAssign(this),
-                      _staticRef ? { static: deepFreeze(Object.create(_staticRef)) } : {},
-                      _private ? { private: deepAssign(_private) } : {},
-                      _protected ? { protected: deepAssign(_protected) } : {}), arguments);
-                  }
-                } else {
-                  newInst[prop] = Root.public[prop];
-                }
-              });
-            }
-            //check inits for multiple initializaitons from inherited parents
-            const initsToStart = Object.keys(Root).filter(key => checkInit.test(key))
-            //creates copy of instance so we don't add static or private variables
-            //if length of array is greather than zero, begin initializing sequenced functions for user
-            if (initsToStart.length > 0) {
-              initsToStart.forEach(name => {
-                const index = parseInt(name.slice(-1));
-                for (let prop in Root[name]) {
-                  if (Root[name][prop] instanceof Function) {
-                    Root[name][prop].call(Object.assign({}, deepAssign(newInst),
-                      _staticRef ? { static: Number.isNaN(index) ? _staticRef : Root['static' + index] } : {},
-                      _private ? { private: deepAssign(_private) } : {},
-                      _protected ? { protected: deepAssign(_protected) } : {},
-                      { _instance: deepAssign(newInst) }));
-                  }
-                }
-              });
-            }
-            if (createOpts.sealed) {
-              newInst = Object.seal(newInst);
-            } else if (createOpts.freeze) {
-              newInst = deepFreeze(newInst);
-            }
-            
-            //flips singleton flag so it will no longer create instances
-            if (options.singleton) {
-              flag = flag ^ SINGLETON_FLAG;
-              options.singleton = false;
-              return newInst;
-            } else {
-              return (flag & SINGLETON_FLAG) === SINGLETON_FLAG ? null : newInst;
             }
           }
-          return initialize.call(this);
+          if (_protected) {
+            for (let prop in _protected) {
+              if (_protected[prop] instanceof Function) {
+                const tempFn = _protected[prop];
+                _protected[prop] = function () {
+                  return tempFn.apply(Object.assign({}, deepAssign(newInst),
+                    _staticRef ? { static: deepFreeze(Object.create(_staticRef)) } : {},
+                    { private: deepAssign(_private) },
+                    { protected: deepAssign(_protected) }), arguments);
+                }
+              }
+            }
+          }
+          if (Root.public) {
+            filteredOutArgsPublic.forEach(prop => {
+              if (Root.public[prop] instanceof Function) {
+                newInst[prop] = function () {
+                  return Root.public[prop].apply(Object.assign({}, deepAssign(this),
+                    _staticRef ? { static: deepFreeze(Object.create(_staticRef)) } : {},
+                    _private ? { private: deepAssign(_private) } : {},
+                    _protected ? { protected: deepAssign(_protected) } : {}), arguments);
+                }
+              } else {
+                newInst[prop] = Root.public[prop];
+              }
+            });
+          }
+          //check inits for multiple initializaitons from inherited parents
+          const initsToStart = Object.keys(Root).filter(key => checkInit.test(key))
+          //creates copy of instance so we don't add static or private variables
+          //if length of array is greather than zero, begin initializing sequenced functions for user
+          if (initsToStart.length > 0) {
+            initsToStart.forEach(name => {
+              const index = parseInt(name.slice(-1));
+              for (let prop in Root[name]) {
+                if (Root[name][prop] instanceof Function) {
+                  Root[name][prop].call(Object.assign({}, deepAssign(newInst),
+                    this.static || Root['static' + index] ? { static: deepAssign(Number.isNaN(index) ? this.static : Root['static' + index]) } : {},
+                    _private ? { private: deepAssign(_private) } : {},
+                    _protected ? { protected: deepAssign(_protected) } : {},
+                    { _instance: deepAssign(newInst) }));
+                }
+              }
+              if ((flag & INHERITANCE_FLAG) === INHERITANCE_FLAG) {
+                if (Root['static' + numOfChildren]) {
+                  console.log("ROOOT________");
+                  console.log(Parent.root);
+                }
+              }
+            });
+          }
+          if (createOpts.sealed) {
+            newInst = Object.seal(newInst);
+          } else if (createOpts.freeze) {
+            newInst = deepFreeze(newInst);
+          }
+
+          //flips singleton flag so it will no longer create instances
+          if (options.singleton) {
+            flag = flag ^ SINGLETON_FLAG;
+            options.singleton = false;
+            return newInst;
+          } else {
+            return (flag & SINGLETON_FLAG) === SINGLETON_FLAG ? null : newInst;
+          }
         } else throw new TypeError('Argument must be an object for create');
       }
     }, _static.methods);

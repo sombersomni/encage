@@ -196,12 +196,22 @@ describe('#encage', function () {
             expect(circle2).to.be.instanceOf(Circle);
             expect(circle3).to.be.instanceOf(Circle);
         });
-        // it('lets user choose specific init functions to be passed to inherited', function () {
-        //     const eShape = encage(Shape);
-        //     const eSquare = eShape.extend(Square, { allowInits: ["countShapes"] });
-        //     const square = eSquare.create({ name: "red square", width: 2, height: 2, sides: 4 });
-        //     const square2 = eSquare.create({ name: "red square", width: 2, height: 2, sides: 4 });
-        //     console.log(eSquare);
-        // });
+        it('lets user choose specific init functions to be passed to inherited', function () {
+            const eShape = encage(Shape);
+            const eSquare = eShape.extend(Square, { allowInits: ["countShapes"] });
+            eSquare.create({});
+            const eCircle = eShape.extend(Circle, { allowInits: false });
+            eCircle.create({});
+            expect(eShape.static.shapes.length).to.equal(0);
+            expect(eShape.static.numOfShapes).to.equal(1);
+            expect(eSquare.static.numOfSquares).to.equal(1);
+            eShape.static.numOfSquares++;
+            expect(eSquare.static.numOfSquares).to.equal(1);
+            expect(eCircle.static.circleCount).to.equal(1);
+            expect(eShape.static.numOfShapes).to.equal(1);
+            expect(eShape.static.shapes.length).to.equal(0);
+            console.log("AFTER TEST");
+            console.log(eShape);
+        });
     });
 });
