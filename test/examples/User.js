@@ -1,28 +1,28 @@
-function User() {
-    this.name = "default";
-    this.id = 21240242;
-    this.private = {
+const User = {
+    public: {
+        name: 'default',
+        id: 21240242,
+        getName: function () {
+            return this.name;
+        },
+        getAddress: function () {
+            return this.private.info.address;
+        }
+    },
+    private: {
         info: {}
-    }
-    this.static = {
+    },
+    static: {
         userCount: 0,
         allIDs: []
-    }
-    this.init = {
+    },
+    init: {
         upCount: function () {
             this.static.userCount++;
         },
         addIDS: function () {
             this.static.allIDs.push(this.name);
         }
-    }
-}
-User.prototype = {
-    getName: function () {
-        return this.name;
-    },
-    getAddress: function () {
-        return this.private.info.address;
     }
 }
 

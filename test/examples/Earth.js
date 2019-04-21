@@ -1,10 +1,10 @@
-function Earth() {
-    this.population = 21424214;
-    this.size = 35353035;
-}
-Earth.prototype = {
-    description() {
-        return "Big blue ball floating in space"
+const Earth = {
+    public: {
+        population: 21424214,
+        size: 35353035,
+        description() {
+            return "Big blue ball floating in space"
+        }
     }
 }
 

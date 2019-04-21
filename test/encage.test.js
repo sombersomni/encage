@@ -12,21 +12,22 @@ const Earth = require('./examples/Earth');
 let eBankAccount;
 describe('#encage', function () {
     it('throws error if encage takes any but Function or Object', function () {
-        expect(encage.bind(null, "config")).to.throw(TypeError, 'Must use a constructor Function or Object');
-        expect(encage.bind(null, 3)).to.throw(TypeError, 'Must use a constructor Function or Object');
-        expect(encage.bind(null, true)).to.throw(TypeError, 'Must use a constructor Function or Object');
-        expect(encage.bind(null, [])).to.throw(TypeError, 'Must use a constructor Function or Object');
+        expect(encage.bind(null, "config")).to.throw(TypeError, 'Must use a Object as an argument for create');
+        expect(encage.bind(null, 3)).to.throw(TypeError, 'Must use a Object as an argument for create');
+        expect(encage.bind(null, true)).to.throw(TypeError, 'Must use a Object as an argument for create');
+        expect(encage.bind(null, [])).to.throw(TypeError, 'Must use a Object as an argument for create');
+        expect(encage.bind(null, function Jedi() { })).to.throw(TypeError, 'Must use a Object as an argument for create');
     });
     describe('#create', function () {
         before(function () {
             eBankAccount = encage(BankAccount);
         })
         it('keeps track of 5 instances using static variables', function () {
-            const account = eBankAccount.create({ name: 'Xavier', bankName: 'Regions', accountNumber: 10204343 });
-            const account2 = eBankAccount.create({ name: 'Korey', bankName: 'Regions', accountNumber: 43462345 });
-            const account3 = eBankAccount.create({ name: 'Martin', bankName: 'Bank Of America', accountNumber: 234323324 });
-            const account4 = eBankAccount.create({ name: 'Gurjot', bankName: 'Credit Union', accountNumber: 212349021 });
-            const account5 = eBankAccount.create({ name: 'Scarlett', bankName: 'Chase', accountNumber: 23423534 });
+            eBankAccount.create({ name: 'Xavier', bankName: 'Regions', accountNumber: 10204343 });
+            eBankAccount.create({ name: 'Korey', bankName: 'Regions', accountNumber: 43462345 });
+            eBankAccount.create({ name: 'Martin', bankName: 'Bank Of America', accountNumber: 234323324 });
+            eBankAccount.create({ name: 'Gurjot', bankName: 'Credit Union', accountNumber: 212349021 });
+            eBankAccount.create({ name: 'Scarlett', bankName: 'Chase', accountNumber: 23423534 });
             expect(eBankAccount.static.clients).to.be.an.instanceof(Array);
             expect(eBankAccount.static.clients.length).to.equal(5);
             expect(eBankAccount.static.numOfAccounts).to.equal(5);
@@ -65,52 +66,18 @@ describe('#encage', function () {
             const account = eBankAccount.create();
             expect(account.name).to.equal('');
         })
-        it('can create with an empty constructor and object', function () {
-            function Test() { }
+        it('can create with an empty object', function () {
+            const Test = {};
             const eTest = encage(Test);
             expect(eTest.static).to.be.empty;
-            const test1 = eTest.create({});
-            expect(test1).to.be.instanceOf(Test);
-            expect(test1).to.be.empty;
-            const Test2 = {};
-            const eTest2 = encage(Test2);
-            expect(eTest2.static).to.be.empty;
-            const test2 = eTest2.create({});
-            expect(test2).to.be.empty;
+            const test = eTest.create({});
+            expect(test).to.be.empty;
         })
-        it('can take function constructors as a parameter', function () {
-            const eUser = encage(User);
-            const user1 = eUser.create({
-                name: "Xavier",
-                info: {
-                    address: "222 Mahogany Lane",
-                    phone: "1025552444",
-                }
-            });
-            expect(user1).to.be.instanceOf(User);
-            expect(user1.getName()).to.equal("Xavier");
-            expect(user1.getAddress()).to.equal("222 Mahogany Lane");
-            expect(eUser.static.userCount).to.equal(1);
-            expect(eUser.static.allIDs.length).to.equal(1);
-            expect(eUser.static.allIDs[0]).to.equal("Xavier");
-        });
-        it('can create instances that can be referenced back to initial Class', function () {
-            const eUser = encage(User);
-            const user1 = eUser.create({ name: "Homer" });
-            const user2 = eUser.create({ name: "Lisa" });
-            const user3 = eUser.create({ name: "Apu" });
-            const user4 = eUser.create({ name: "Moe" });
-            expect(user1).to.be.instanceOf(User);
-            expect(user2).to.be.instanceOf(User);
-            expect(user3).to.be.instanceOf(User);
-            expect(user4).to.be.instanceOf(User);
-        });
         it("can create singleton objects for one instance", function () {
             const options = { singleton: true };
             const eEarth = encage(Earth, options);
             const earth = eEarth.create();
             expect(earth.description()).to.equal("Big blue ball floating in space");
-            expect(earth).to.be.instanceOf(Earth);
             expect(earth).to.be.an('object');
             const earth2 = eEarth.create();
             expect(earth2).to.be.null;
@@ -175,55 +142,33 @@ describe('#encage', function () {
             expect(eShape.static.numOfShapes).to.equal(2);
             expect(eSquare.static.numOfSquares).to.equal(2);
             expect(square.area()).to.equal(225);
-            expect(square).to.be.instanceOf(Square);
             expect(square.id).to.be.undefined;
             expect(square.hit(square2)).to.equal(1);
 
         });
-        it('keeps instances of base class tied to istanceof Base and Parent Class', function () {
 
-            const eShape = encage(Shape);
-            const eCircle = eShape.extend(Circle);
-            const eEllipse = eCircle.extend(Ellipse)
-            const circle = eCircle.create({name: "circle1"});
-            const circle2 = eCircle.create({name: "circle2"});
-            const circle3 = eCircle.create({name: "circle3"});
-            const ellipse = eEllipse.create({name: "ellipse"});
-            expect(circle).to.be.instanceOf(Circle);
-            expect(circle2).to.be.instanceOf(Circle);
-            expect(circle3).to.be.instanceOf(Circle);
-            expect(circle).to.be.instanceOf(Shape);
-            expect(circle2).to.be.instanceOf(Shape);
-            expect(circle3).to.be.instanceOf(Shape);
-            console.log(ellipse instanceof Ellipse, ellipse instanceof Circle, ellipse instanceof Shape);
-            console.log("__CHECKING TEST_______");
-            console.log(eShape);
-
-        });
-        it('lets user choose specific init functions to be passed to inherited', function () {
-            const eShape = encage(Shape);
-            const eSquare = eShape.extend(Square, { allowInits: ["countShapes"] });
-            eSquare.create({});
-            const eCircle = eShape.extend(Circle, { allowInits: false });
-            eCircle.create({});
-            expect(eShape.static.shapes.length).to.equal(0);
-            expect(eShape.static.numOfShapes).to.equal(1);
-            expect(eSquare.static.numOfSquares).to.equal(1);
-            eShape.static.numOfSquares++;
-            expect(eSquare.static.numOfSquares).to.equal(1);
-            expect(eCircle.static.circleCount).to.equal(1);
-            expect(eShape.static.numOfShapes).to.equal(1);
-            expect(eShape.static.shapes.length).to.equal(0);
-        });
         it('can use objects in inheritance', function () {
             const eCharacter = encage(Character);
-            const eEnemy= eCharacter.extend(Enemy);
+            const eEnemy = eCharacter.extend(Enemy);
             const eSlime = eEnemy.extend(Slime);
-            const slime = eSlime.create({name: "silver slime", color: "silver", health: 40, info: { description: "slimer moves slow "}});
+            const slime = eSlime.create({ name: "silver slime", color: "silver", health: 40, info: { description: "slimer moves slow " } });
             console.log(slime);
             console.log(eCharacter);
             console.log(eEnemy);
             console.log(eSlime);
+        });
+        it('lets user choose specific init functions to be passed to inherited', function () {
+            const eShape = encage(Shape);
+            console.log(eShape);
+            const eSquare = eShape.extend(Square, { allowInits: ["countShapes"] });
+            console.log(eShape)
+            eSquare.create({});
+            const eCircle = eShape.extend(Circle, { allowInits: false });
+            eCircle.create({});
+            expect(eShape.static.numOfShapes).to.equal(1);
+            expect(eSquare.static.numOfSquares).to.equal(1);
+            eShape.static.numOfSquares++;
+            console.log(eShape);
         });
     });
 });

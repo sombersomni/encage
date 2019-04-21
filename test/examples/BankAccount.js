@@ -28,6 +28,8 @@ const BankAccount = {
             }
         },
         setSSN: function (ssn) {
+            console.log("======inside getSSN========");
+            console.log(this);
             this.private.sensitiveData.ssn = ssn;
         },
         deleteClients: function () {

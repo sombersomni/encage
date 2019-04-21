@@ -7,42 +7,20 @@ let { SINGLETON_FLAG, INHERITANCE_FLAG, IGNORE_INIT } = require("./helpers/flags
 //this function is using closures to keep private variables and public variables intact and managable
 function encage(Parent, options = { singleton: false }) {
   //keep track of the encage state for user specified options
-  let state = { flag: 0, numOfChildren: 0 };
-  let { flag, numOfChildren } = state;
+  let state = { flag: 0 };
+  let { flag } = state;
   if (typeof options != 'object' && !(options.constructor === Object)) {
     throw new TypeError('You need to use an object for your options');
   }
   if (Parent.inherited) {
     flag = flag ^ INHERITANCE_FLAG;
-    numOfChildren = Parent.numOfChildren;
+    //this is important for keeping inheritance through a prototype chain for infinite number of classes;
     delete Parent.inherited;
-    delete Parent.numOfChildren;
   }
   //checks if Parent Object/Class is an object or constructor class
   const isObject = (typeof Parent === 'object' && (Parent.constructor === Object));
-  if (Parent && Parent instanceof Function || isObject) {
-    let Root = {};
-    if (isObject) {
-      Root = Object.assign({}, Parent);
-    } else {
-      try {
-        const tempRoot = new Parent();
-        Root = Object.create(Parent.prototype);
-        Root['public'] = {};
-        Object.getOwnPropertyNames(tempRoot).forEach(prop => {
-          if (prop != 'private' && prop != 'protected' && prop != 'public' && prop != 'static' && prop != 'init') {
-            Root['public'][prop] = tempRoot[prop];
-          } else {
-            Root[prop] = Object.assign({}, tempRoot[prop]);
-          }
-        });
-        for (let key in Parent.prototype) {
-          Root['public'][key] = Parent.prototype[key];
-        }
-      } catch (err) {
-        console.warn("make sure to use a constructor function");
-      }
-    }
+  if (isObject) {
+    let Root = Object.assign({}, Parent);
     //creates static state for object
     let _static = { methods: {}, variables: {} }
     if (Root['static'] instanceof Array) {
@@ -50,7 +28,6 @@ function encage(Parent, options = { singleton: false }) {
     } else {
       _static = separateStatics(Root['static'], _static);
     }
-
     function Encaged() {
       this.static = {};
       for (let key in _static.variables) {
@@ -75,37 +52,25 @@ function encage(Parent, options = { singleton: false }) {
         }
         //allows the user to inherit from base class
         //inheritance flag is set to 2;
-        if (Child && Child instanceof Function || (typeof Child === 'object' && (Child.constructor === Object))) {
+        if (Child && typeof Child === 'object' && (Child.constructor === Object)) {
           let tempChild = {}
           //turn on ignore intialization flag
           flag = flag ^ IGNORE_INIT;
-          tempInst = Object.create(this.create());
+          let tempInst = Object.assign({}, this.create());
           flag = flag ^ IGNORE_INIT;
-          if (Child instanceof Function) {
-            tempProto = Child.prototype;
-            Child.prototype = Object.assign(tempInst, tempProto);
-            tempChild = new Child();
-            //relegates this.variables into temps public object for reorganization later
+
+          //run instance and map it to temporary Child before adding inherited properties to it
+          tempChild = Object.assign({}, tempInst, Child);
+          //makes sure public property is not empty
+          if (!tempChild['public']) {
             tempChild['public'] = {};
-            for (let prop in Child.prototype) {
-              if (prop === 'public') {
-                tempChild['public'] = Object.assign({}, Child.prototype['public']);
-              } else {
-                tempChild['public'][prop] = Child.prototype[prop];
-              }
-            }
-          } else {
-            //run instance and map it to temporary Child before adding inherited properties to it
-            tempChild = Object.assign(tempInst, Child);
-            //makes sure public property is not empty
-            if(!tempChild['public']) {
-              tempChild['public'] = {};
-            }
           }
           Object.keys(tempChild).forEach(prop => {
             if (prop != 'private' && prop != 'protected' && prop != 'public' && prop != 'static' && prop != 'init') {
               //compounds temp props into public and deletes rest around object
-              tempChild['public'][prop] = tempChild[prop];
+              if(!tempChild['public']) {
+                tempChild['public'][prop] = tempChild[prop];
+              }
               delete tempChild[prop];
             } else {
               const value = tempChild[prop];
@@ -125,7 +90,8 @@ function encage(Parent, options = { singleton: false }) {
                 if (setting === 'static') {
                   if (tempChild['static'] && tempChild['static'] instanceof Array) {
                     if (Root['static'] instanceof Array) {
-                      let staticArr = Root['static'].slice().unshift(tempChild['static'][0]);
+                      let staticArr = Root['static'].slice()
+                      staticArr.unshift(tempChild['static'][0]);
                       tempChild['static'] = staticArr;
                     } else {
                       tempChild['static'].push(Root['static']);
@@ -138,7 +104,8 @@ function encage(Parent, options = { singleton: false }) {
                   if (setting === 'init') {
                     if (tempChild['init'] && tempChild['init'] instanceof Array) {
                       if (Root['init'] instanceof Array) {
-                        let staticArr = Root['init'].slice().unshift(tempChild['static'][0]);
+                        let staticArr = Root['init'].slice()
+                        staticArr.unshift(tempChild['static'][0]);
                         tempChild['init'] = staticArr;
                       } else {
                         tempChild['init'].push(Root['init']);
@@ -173,8 +140,8 @@ function encage(Parent, options = { singleton: false }) {
 
                   if (tempChild['init'] && tempChild['init'] instanceof Array) {
                     if (allowed instanceof Array) {
-                      let staticArr = allowed.unshift(tempChild['static'][0]);
-                      tempChild['init'] = staticArr;
+                      allowed.unshift(tempChild['static'][0]);
+                      tempChild['init'] = allowed;
                     } else {
                       tempChild['init'].push(allowed);
                     }
@@ -202,7 +169,7 @@ function encage(Parent, options = { singleton: false }) {
               }
             }
           }
-          return encage(Object.assign(tempChild, { inherited: true, numOfChildren: numOfChildren }));
+          return encage(Object.assign(tempChild, { inherited: true }));
         } else {
           throw new TypeError('You need to pass an object or constructor function');
         }
@@ -214,19 +181,12 @@ function encage(Parent, options = { singleton: false }) {
         //assign arguments from create to public and private set variables
         if ((typeof constructArgs === 'object' && constructArgs.constructor === Object)) {
           const publicProps = {};
-          let filteredOutArgsPublic = [];
           if (constructArgs) {
-            filteredOutArgsPublic = Root.public ? Object.keys(Root.public).filter(prop => !constructArgs.hasOwnProperty(prop)) : [];
             Object.keys(constructArgs).forEach(prop => {
               //assigns class arguments to public vars
               const value = constructArgs[prop];
               if (Root.public && Root.public.hasOwnProperty(prop)) {
-                publicProps[prop] = {
-                  value,
-                  writeable: !createOpts.freeze,
-                  enumerable: true,
-                  configurable: !createOpts.sealed && !createOpts.freeze
-                }
+                publicProps[prop] = value
                 //assigns class arguments to public vars
               } else if (Root.private && Root.private.hasOwnProperty(prop)) {
                 Root.private[prop] = value;
@@ -234,27 +194,21 @@ function encage(Parent, options = { singleton: false }) {
                 Root.protected[prop] = value;
               }
             });
-          } else {
-            filteredOutArgsPublic = Object.keys(Root.public);
           }
+
           //setup for private and protected state
           //sealing private so it can't be deleted from the outside.
           let _private = Object.assign({}, Root.private);
           //sealing protected so it can't be deleted from the outside.
           let _protected = Object.assign({}, Root.protected);
           //creates a new instance to configure before returning to user
-          let newInst = {};
-          if ((flag & INHERITANCE_FLAG) === INHERITANCE_FLAG) {
-            newInst = Object.create(Parent, publicProps);
-          }
-          else
-            newInst = Object.create(isObject ? {} : Parent.prototype, publicProps);
+          let newInst = Object.assign({}, Root.public, publicProps);
           //maps all functions to instance and private/static variables using apply
           let _staticRef = this.static;
           if (_private) {
             for (let prop in _private) {
               if (_private[prop] instanceof Function) {
-                const tempFn = _private[prop];
+                let tempFn = _private[prop];
                 _private[prop] = function () {
                   return tempFn.apply(Object.assign({}, deepAssign(newInst),
                     _staticRef ? { static: deepFreeze(Object.create(_staticRef)) } : null,
@@ -267,7 +221,7 @@ function encage(Parent, options = { singleton: false }) {
           if (_protected) {
             for (let prop in _protected) {
               if (_protected[prop] instanceof Function) {
-                const tempFn = _protected[prop];
+                let tempFn = _protected[prop];
                 _protected[prop] = function () {
                   return tempFn.apply(Object.assign({}, deepAssign(newInst),
                     _staticRef ? { static: deepFreeze(Object.create(_staticRef)) } : null,
@@ -277,20 +231,17 @@ function encage(Parent, options = { singleton: false }) {
               }
             }
           }
-          if (Root.public) {
-            filteredOutArgsPublic.forEach(prop => {
-              if (Root.public[prop] instanceof Function) {
-                newInst[prop] = function () {
-                  return Root.public[prop].apply(Object.assign({}, deepAssign(this),
-                    _staticRef ? { static: deepFreeze(Object.create(_staticRef)) } : null,
-                    _private ? { private: deepAssign(_private) } : null,
-                    _protected ? { protected: deepAssign(_protected) } : null), arguments);
-                }
-              } else {
-                newInst[prop] = Root.public[prop];
+          Object.getOwnPropertyNames(newInst).forEach(name => {
+            if (newInst[name] instanceof Function) {
+              let tempFn = newInst[name];
+              newInst[name] = function () {
+                return tempFn.apply(Object.assign({}, deepAssign(this),
+                  _staticRef ? { static: deepFreeze(Object.create(_staticRef)) } : {},
+                  _private ? { private: deepAssign(_private) } : {},
+                  _protected ? { protected: deepAssign(_protected) } : {}), arguments);
               }
-            });
-          }
+            }
+          });
           //Ignore flag ignores initialization property when extend function is used
           if ((flag & IGNORE_INIT) != IGNORE_INIT) {
             //check inits for multiple initializaitons from inherited parents
@@ -320,12 +271,12 @@ function encage(Parent, options = { singleton: false }) {
               }
             }
           }
+          //keeps user from changing object properties. Based on user setting
           if (createOpts.sealed) {
             newInst = Object.seal(newInst);
           } else if (createOpts.freeze) {
             newInst = deepFreeze(newInst);
           }
-
           //flips singleton flag so it will no longer create instances
           if (options.singleton) {
             flag = flag ^ SINGLETON_FLAG;
@@ -339,19 +290,8 @@ function encage(Parent, options = { singleton: false }) {
     }, _static.methods);
     return new Encaged();
   } else {
-    throw new TypeError('Must use a constructor Function or Object');
+    throw new TypeError('Must use a Object as an argument for create');
   }
 }
 
-// const eShape = encage(Shape);
-// const eCircle = eShape.extend(Circle);
-// const eEllipse = eShape.extend(eCircle.extend(Ellipse).create());
-
-// const circle = eCircle.create({ name: "circle1" });
-// const circle2 = eCircle.create({ name: "circle2" });
-// const circle3 = eCircle.create({ name: "circle3" });
-// const ellipse = eEllipse.create({ name: "ellipse" });
-// console.log(ellipse instanceof Ellipse, ellipse instanceof Circle, ellipse instanceof Shape);
-// console.log("__CHECKING TEST_______");
-// console.log(eShape);
 module.exports = encage;

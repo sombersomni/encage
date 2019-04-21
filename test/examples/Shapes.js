@@ -1,25 +1,39 @@
-function Shape() {
-    this.width = 10;
-    this.height = 10;
-    this.name = '';
-    this.position = { x: 0, y: 0 };
-    this.init = {
+const Shape = {
+    public: {
+        width: 10,
+        height: 10,
+        name: '',
+        position: { x: 0, y: 0 },
+        move: function () {
+            this.position.x++;
+        },
+        checkID: function () {
+            return this.private.id;
+        },
+        getMatrix: function () {
+            return this.protected.matrix;
+        },
+        setMatrix: function (number) {
+            this.protected.matrix.push(number);
+        }
+    },
+    init: {
         countShapes: function () {
             this.static.numOfShapes++;
         },
         addShape: function () {
             this.static.shapes.push(this.name);
         }
-    }
-    this.static = {
+    },
+    static: {
         numOfShapes: 0,
         shapes: []
-    }
-    this.private = {
+    },
+    private: {
         id: 201232131
-    }
-    this.protected = {
-        matrix: [0,0,2],
+    },
+    protected: {
+        matrix: [0, 0, 2],
         checkCollision: function (shape) {
             if (this.position.x === shape.position.x)
                 return 1;
@@ -28,81 +42,66 @@ function Shape() {
     }
 }
 
-Shape.prototype = {
-    move: function () {
-        this.position.x++;
-    },
-    checkID: function () {
-        return this.private.id;
-    },
-    getMatrix: function () {
-        return this.protected.matrix;
-    },
-    setMatrix: function (number) {
-        this.protected.matrix.push(number);
-    }
-}
-
-function Square() {
-    this.width = 15;
-    this.height = 15;
-    this.sides = 4;
-    this.flat = true;
-    this.static = {
+const Square = {
+    public: {
+        width: 15,
+        height: 15,
+        sides: 4,
+        flat: true,
+        area() {
+            return this.height * this.width;
+        },
+        hit(shape) {
+            return this.protected.checkCollision(shape);
+        }
+    }, 
+    static: {
         numOfSquares: 0
-    }
-    this.init = {
+    }, 
+    init: {
         countSquares: function () {
             this.static.numOfSquares++;
         }
     }
 }
-Square.prototype = {
-    area() {
-        return this.height * this.width;
-    },
-    hit(shape) {
-        return this.protected.checkCollision(shape);
-    }
-}
 
-function Circle() {
-    this.radius = 10;
-    this.static = {
+const Circle = {
+    public: {
+        radius: 10,
+        area() {
+            return Math.pow(this.radius, 2) * Math.PI;
+        }
+    }, 
+    static: {
         circleCount: 0
-    }
-    this.init = {
+    }, 
+    init: {
         countCircle: function () {
             this.static.circleCount++;
         }
     }
 }
-Circle.prototype = {
-    area() {
-        return Math.pow(this.radius, 2) * Math.PI;
-    }
-}
-function Ellipse() {
-    this.static = {
-        ellipseCount: 0
-    }
-    this.init = {
-        countEllipse: function () {
-            this.static.countEllipse++;
+
+const Ellipse = {
+    public: {
+        epsilon: 1,
+        width: 24,
+        height: 99,
+        area() {
+            return Math.pow(this.radius, 2) * this.width;
         }
-    }
-    this.epsilon = 67;
-    this.width = 24;
-    this.height = 99;
-    this.private = {
+    },
+    static: {
+        ellipseCount: 0
+    },
+    init: {
+        countEllipse: function () {
+            this.static.ellipseCount++;
+        }
+    },
+    private: {
         test: 2
     }
 }
-
-Ellipse.prototype = {
-    area() {
-        return Math.pow(this.radius, 2) * Math.PI;
-    }
-};
 
 module.exports = { Shape, Square, Circle, Ellipse };
