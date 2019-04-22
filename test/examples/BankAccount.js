@@ -14,7 +14,8 @@ const BankAccount = {
             }
         },
         deleteClients: function () {
-            delete this.static.clients;
+            this.static.numOfAccounts = 0;
+            this.static.clients = [];
         }
     },
     public: {

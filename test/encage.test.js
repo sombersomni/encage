@@ -18,13 +18,25 @@ describe('#encage', function () {
         expect(encage.bind(null, [])).to.throw(TypeError, 'Must use a Object as an argument');
         expect(encage.bind(null, function Jedi() { })).to.throw(TypeError, 'Must use a Object as an argument');
     });
+    it('allows user to name their object for referencing later', function () {
+        const eUser = encage(User);
+        expect(eUser.name).to.equal('encageId0');
+        const User2 = {
+            name: "User2",
+            public: {
+                username: "n/a",
+            }
+        }
+        const eUser2 = encage(User2);
+        expect(eUser2.name).to.equal('User2');
+
+    });
     describe('#create', function () {
         before(function () {
             eBankAccount = encage(BankAccount);
         })
         afterEach(function () {
-            eBankAccount.static.clients = [];
-            eBankAccount.static.numOfAccounts = 0;
+            eBankAccount.static.deleteClients();
         })
         it('takes only an object as an argument or nothing', function () {
             expect(eBankAccount.create({})).to.be.an('object');
@@ -48,11 +60,28 @@ describe('#encage', function () {
             expect(eBankAccount.extend.bind(eBankAccount, { init: false })).to.throw(TypeError, 'You must use an object when creating init');
             expect(eBankAccount.extend.bind(eBankAccount, { static: function () {} })).to.throw(TypeError, 'You must use an object when creating static');
         });
-        it('allows user to track', function() {
-            expect(eBankAccount.extend.bind(eBankAccount, { public: 3 })).to.throw(TypeError, 'You must use an object when creating public');
-            expect(eBankAccount.extend.bind(eBankAccount, { private: [] })).to.throw(TypeError, 'You must use an object when creating private');
-            expect(eBankAccount.extend.bind(eBankAccount, { init: false })).to.throw(TypeError, 'You must use an object when creating init');
-            expect(eBankAccount.extend.bind(eBankAccount, { static: function () {} })).to.throw(TypeError, 'You must use an object when creating static');
+        it('create or extend funcitons wont overide existing functions', function () {
+            const Test = {
+                static: {
+                    create: function () {}
+                }
+            } 
+            const Test2 = {
+                init: {
+                    useExtend() {
+                        this.static.extend();
+                    }
+                },
+                static: {
+                    extend: function () { console.log("extend is working"); }
+                }
+            }
+            const eTest = encage(Test);
+            let test = eTest.create();
+            expect(test).to.be.empty;
+            const eTest2 = encage(Test2);
+            let test2 = eTest2.create();
+            expect(test2).to.be.empty;
         });
         it('keeps track of 5 instances using static variables', function () {
             eBankAccount.create({ name: 'Xavier', bankName: 'Regions', accountNumber: 10204343 });
@@ -101,9 +130,10 @@ describe('#encage', function () {
         it('can create with an empty object', function () {
             const Test = {};
             const eTest = encage(Test);
-            console.log(eTest);
+            expect(eTest.static).to.be.empty;
+            expect(eTest).to.be.an('object');
             const test = eTest.create({});
-            console.log(test);
+            expect(test).to.be.an('object');
         })
         it("can create singleton objects for one instance", function () {
             const options = { singleton: true };
@@ -154,13 +184,18 @@ describe('#encage', function () {
             expect(Object.isFrozen(account.info)).to.be.true;
 
         });
-        it('cant change statics from within public, must use a static function', function () {
+        it('can change statics out in public', function () {
             const account = eBankAccount.create({ name: "Hermione", bankName: "Gringots", password: "Hufflepuff" });
-            account.deleteClients();
             expect(delete account.name).to.be.true;
             expect(eBankAccount.static.clients.length).to.equal(eBankAccount.static.numOfAccounts);
-            eBankAccount.deleteClients();
+            delete eBankAccount.static.clients;
             expect(eBankAccount.static.clients).to.be.undefined;
+        });
+        it('cant make changes to encage object name', function () {
+            const eCharacter = encage(Character);
+            expect(eCharacter.name).to.equal("Character");
+            eCharacter.name = "test";
+            expect(eCharacter.name).to.equal("Character");
         });
 
     });
@@ -174,6 +209,14 @@ describe('#encage', function () {
             expect(eBankAccount.extend.bind(eBankAccount, 5)).to.throw(TypeError, 'Argument must be an object for extend');
             expect(eBankAccount.extend.bind(eBankAccount, false)).to.throw(TypeError, 'Argument must be an object for extend');
             expect(eBankAccount.extend.bind(eBankAccount, [])).to.throw(TypeError, 'Argument must be an object for extend');
+        });
+        it('can only take an object for configuration and nothing else', function () {
+            expect(eBankAccount.extend({}, {})).to.be.an('object');
+            expect(eBankAccount.extend.bind(eBankAccount, {}, 3)).to.throw(TypeError, 'You need to use an object for your options');
+            expect(eBankAccount.extend.bind(eBankAccount, {}, function Test() { })).to.throw(TypeError, 'You need to use an object for your options');
+            expect(eBankAccount.extend.bind(eBankAccount, {}, 5)).to.throw(TypeError, 'You need to use an object for your options');
+            expect(eBankAccount.extend.bind(eBankAccount, {}, false)).to.throw(TypeError, 'You need to use an object for your options');
+            expect(eBankAccount.extend.bind(eBankAccount, {}, [])).to.throw(TypeError, 'You need to use an object for your options');
         });
         it('checks if properties in object are objects themselves', function() {
             expect(eBankAccount.extend.bind(eBankAccount, { public: 3 })).to.throw(TypeError, 'You must use an object when creating public');
@@ -192,7 +235,6 @@ describe('#encage', function () {
             expect(square.area()).to.equal(225);
             expect(square.id).to.be.undefined;
             expect(square.hit(square2)).to.equal(1);
-
         });
 
         it('lets user choose specific init functions to be passed to inherited', function () {
