@@ -22,7 +22,7 @@ const Shape = {
             this.static.numOfShapes++;
         },
         addShape: function () {
-            this.static.shapes.push(this.name);
+            this.static.shapes.push(this.instance);
         }
     },
     static: {
