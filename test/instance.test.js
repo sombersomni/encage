@@ -3,7 +3,7 @@ var encage = require('../src/index.js');
 var expect = chai.expect;
 
 //test objects and constructors
-const { Character, Player, Slime, Enemy } = require('./examples/Game');
+const { Character, Player, Slime, Enemy, NPC, Villager } = require('./examples/Game');
 let eCharacter, eEnemy, ePlayer, eSlime;
 describe('#encageInst', function () {
     before(function () {
@@ -42,14 +42,56 @@ describe('#encageInst', function () {
     });
     it('can add functions to encage object for more functionality', function () {
         //create helper functions
-        eEnemy.intializeEnemy = function ( ) {
+        eEnemy.intializeEnemy = function () {
             let enemies = [];
-            for(let i = 0; i <= 2; i++) {
+            for (let i = 0; i <= 2; i++) {
                 const randomHealth = Math.floor(Math.random() * 100 + 50);
                 enemies.push(this.create({ name: "generic enemy", health: randomHealth }));
             }
             return enemies;
         }
-        console.log(eEnemy.intializeEnemy());
+        const enemies = eEnemy.intializeEnemy();
+        expect(enemies.length).to.equal(3);
+        expect(enemies[0].name).to.equal('generic enemy');
+    });
+    it('can create single player using singleton', function () {
+        const SinglePlayer = encage(Player, { singleton: true });
+        const readyPlayer = SinglePlayer.create({ name: "Pacman" });
+        expect(readyPlayer).to.be.an('object');
+        expect(readyPlayer.name).to.equal('Pacman');
+        const newPlayer = SinglePlayer.create({ name: "Mrs. Pacman" });
+        const newPlayer2 = SinglePlayer.create({ name: "Ghost" });
+        expect(newPlayer).to.be.null;
+        expect(newPlayer2).to.be.null;
+        SinglePlayer.toggle('singleton');
+        const newPlayer3 = SinglePlayer.create({ name: 'Added Player' });
+        expect(newPlayer3).to.be.an('object');
+        expect(newPlayer3.name).to.equal('Added Player');
+    });
+    it('can turn tracking on and off for individual objects', function () {
+        const eNPC = ePlayer.extend(NPC, { tracking: true });
+        eNPC.createTownsPeople = function (num) {
+            for(let i = 0; i < num; i++) {
+                this.create({ name: "towney", id: i });
+            }
+        }
+        eNPC.createTownsPeople(5);
+        eNPC.toggle('tracking');
+        eNPC.createTownsPeople(5);
+        expect(eNPC.static.numOfInstances).to.equal(5);
+        eNPC.toggle('tracking');
+        eNPC.createTownsPeople(5);
+        expect(eNPC.static.numOfInstances).to.equal(10);
+        const eVillager = eNPC.extend(Villager);
+        console.log(eVillager);
+        const villager = eVillager.create({ name: 'Sandy' });
+        expect(eVillager.static.numOfInstances).to.be.undefined;
+        expect(eNPC.static.numOfInstances).to.equal(10);
+        eVillager.toggle('tracking');
+        console.log(eVillager);
+        const villager2 = eVillager.create({ name: 'Blazer' }); 
+        //expect(eVillager.static.numOfInstances).to.equal(1);
+        expect(eNPC.static.numOfInstances).to.equal(11);
+
     });
 })

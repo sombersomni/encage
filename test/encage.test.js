@@ -31,6 +31,31 @@ describe('#encage', function () {
         expect(eUser2.name).to.equal('User2');
 
     });
+    it('can allow tracking of all instances', function () {
+        const eUser = encage(User, { tracking : true });
+        const user = eUser.create({ name: "sombersomni" });
+        const user2 = eUser.create({ name: "beauty" });
+        expect(user.name).to.equal(eUser.static.instances[user.instanceID].name);
+        expect(user2.name).to.equal(eUser.static.instances[user2.instanceID].name);
+        //stops tracking
+        eUser.toggle('tracking');
+        const user3 = eUser.create({ name: "hulk" });
+        expect(eUser.static.instances[user3.instanceID]).to.be.undefined;
+        //continues tracking
+        eUser.toggle('tracking');
+        const user4 = eUser.create({ name: "babyface" });
+        expect(user4.name).to.equal(eUser.static.instances[user4.instanceID].name);
+        
+    });
+    it("can create singleton objects for one instance", function () {
+        const options = { singleton: true };
+        const eEarth = encage(Earth, options);
+        const earth = eEarth.create();
+        expect(earth.description()).to.equal("Big blue ball floating in space");
+        expect(earth).to.be.an('object');
+        const earth2 = eEarth.create();
+        expect(earth2).to.be.null;
+    });
     describe('#create', function () {
         before(function () {
             eBankAccount = encage(BankAccount);
@@ -49,7 +74,6 @@ describe('#encage', function () {
         it('checks if options are an object or nothing at all', function () {
             expect(eBankAccount.create.bind(eBankAccount, null, 1)).to.throw(TypeError, 'You need to use an object for your options');
             expect(eBankAccount.create.bind(eBankAccount, null, function Test() { })).to.throw(TypeError, 'You need to use an object for your options');
-            expect(eBankAccount.create.bind(eBankAccount, null, false)).to.throw(TypeError, 'You need to use an object for your options');
             expect(eBankAccount.create.bind(eBankAccount, null, [])).to.throw(TypeError, 'You need to use an object for your options');
             expect(eBankAccount.create.bind(eBankAccount, null, new Set())).to.throw(TypeError, 'You need to use an object for your options');
 
@@ -106,7 +130,6 @@ describe('#encage', function () {
             expect(account2.info.address).to.equal("333 Pickadrive Ln");
         });
         it('can change private variables while keeping them unreachable', function () {
-
             const account = eBankAccount.create({ name: 'Reggie', bankName: 'Regions', accountNumber: 10204343 });
             expect(account.balance).to.be.undefined;
             expect(account.private).to.be.undefined;
@@ -117,8 +140,8 @@ describe('#encage', function () {
             expect(account.getBalance()).to.equal(1000);
         });
         it('can use static functions', function () {
-            const account = eBankAccount.create({ name: 'Shazam', bankName: 'Regions', accountNumber: 10204343 });
-            const account2 = eBankAccount.create({ name: 'Spiderman', bankName: 'Regions', accountNumber: 43462345 });
+            eBankAccount.create({ name: 'Shazam', bankName: 'Regions', accountNumber: 10204343 });
+            eBankAccount.create({ name: 'Spiderman', bankName: 'Regions', accountNumber: 43462345 });
             expect(eBankAccount.static.printClients).to.not.throw();
             expect(eBankAccount.static.printClients).to.be.instanceOf(Function);
 
@@ -135,15 +158,6 @@ describe('#encage', function () {
             const test = eTest.create({});
             expect(test).to.be.an('object');
         })
-        it("can create singleton objects for one instance", function () {
-            const options = { singleton: true };
-            const eEarth = encage(Earth, options);
-            const earth = eEarth.create();
-            expect(earth.description()).to.equal("Big blue ball floating in space");
-            expect(earth).to.be.an('object');
-            const earth2 = eEarth.create();
-            expect(earth2).to.be.null;
-        });
         it('can allow for overwritten functions but only for public vars', function () {
             const account = eBankAccount.create({ name: "Melissa", bankName: "Chase", password: "password" });
             account.deposit("password", 100);
@@ -207,7 +221,6 @@ describe('#encage', function () {
             expect(eBankAccount.extend.bind(eBankAccount, null)).to.throw(TypeError, 'Argument must be an object for extend');
             expect(eBankAccount.extend.bind(eBankAccount, function Test() { })).to.throw(TypeError, 'Argument must be an object for extend');
             expect(eBankAccount.extend.bind(eBankAccount, 5)).to.throw(TypeError, 'Argument must be an object for extend');
-            expect(eBankAccount.extend.bind(eBankAccount, false)).to.throw(TypeError, 'Argument must be an object for extend');
             expect(eBankAccount.extend.bind(eBankAccount, [])).to.throw(TypeError, 'Argument must be an object for extend');
         });
         it('can only take an object for configuration and nothing else', function () {
@@ -215,7 +228,6 @@ describe('#encage', function () {
             expect(eBankAccount.extend.bind(eBankAccount, {}, 3)).to.throw(TypeError, 'You need to use an object for your options');
             expect(eBankAccount.extend.bind(eBankAccount, {}, function Test() { })).to.throw(TypeError, 'You need to use an object for your options');
             expect(eBankAccount.extend.bind(eBankAccount, {}, 5)).to.throw(TypeError, 'You need to use an object for your options');
-            expect(eBankAccount.extend.bind(eBankAccount, {}, false)).to.throw(TypeError, 'You need to use an object for your options');
             expect(eBankAccount.extend.bind(eBankAccount, {}, [])).to.throw(TypeError, 'You need to use an object for your options');
         });
         it('checks if properties in object are objects themselves', function() {

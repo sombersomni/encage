@@ -50,8 +50,9 @@ const Character = {
         },
         collisionFlag: 0,
         dialogueOptions: ["You are very friendly"],
-        dialogue() {
-            return "hi, my name is " + this.name;
+        dialogue(choice) {
+            choice = choice || Math.floor(Math.random() * this.protected.dialogueOptions.length - 1);
+            return this.protected.dialogueOptions[choice];
         }
     }
 }
@@ -59,13 +60,25 @@ const Character = {
 const Player = {
     name: 'Player',
     public: {
+        name: 'player',
         type: 'player',
         jump() {
             this.position.x += 10;
         }
     }
 }
-
+const NPC = {
+    public: {
+        type: 'npc',
+        id: 0,
+        talk() {
+            return this.protected.dialogue();
+        }
+    },
+    protected: {
+        dialogueOptions: ['You must be lost', 'the market is to the east', 'I lived here my whole life'],
+    }
+}
 const Enemy = {
     name: 'Enemy',
     static: {
@@ -118,5 +131,15 @@ const Slime = {
         dialogueOptions: ["blraaaaahhh", "*Squish*"],
     }
 }
-
-module.exports = { Character, Player, Slime, Enemy };
+const Villager = {
+    public: {
+        name: 'villager',
+    },
+    private: {
+        secrets: {
+            cheatCode: 0,
+            password: 'holdoor'
+        }
+    }
+}
+module.exports = { Character, Player, Slime, Enemy, NPC, Villager };
