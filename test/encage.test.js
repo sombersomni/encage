@@ -218,7 +218,6 @@ describe('#encage', function () {
             // expect(eBankAccount.extend.bind(eBankAccount, {})).to.be.an('object');
             expect(eBankAccount.extend({})).to.be.an('object');
             expect(eBankAccount.extend).to.throw(TypeError, 'Argument must be an object for extend');
-            expect(eBankAccount.extend.bind(eBankAccount, null)).to.throw(TypeError, 'Argument must be an object for extend');
             expect(eBankAccount.extend.bind(eBankAccount, function Test() { })).to.throw(TypeError, 'Argument must be an object for extend');
             expect(eBankAccount.extend.bind(eBankAccount, 5)).to.throw(TypeError, 'Argument must be an object for extend');
             expect(eBankAccount.extend.bind(eBankAccount, [])).to.throw(TypeError, 'Argument must be an object for extend');

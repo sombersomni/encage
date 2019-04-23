@@ -5,7 +5,7 @@ const Shape = {
         name: '',
         position: { x: 0, y: 0 },
         move: function () {
-            this.position.x++;
+            this.public.position.x++;
         },
         checkID: function () {
             return this.private.id;
@@ -35,7 +35,7 @@ const Shape = {
     protected: {
         matrix: [0, 0, 2],
         checkCollision: function (shape) {
-            if (this.position.x === shape.position.x)
+            if (this.public.position.x === shape.position.x)
                 return 1;
             else return 0;
         }
@@ -49,7 +49,7 @@ const Square = {
         sides: 4,
         flat: true,
         area() {
-            return this.height * this.width;
+            return this.public.height * this.public.width;
         },
         hit(shape) {
             return this.protected.checkCollision(shape);

@@ -83,15 +83,39 @@ describe('#encageInst', function () {
         eNPC.createTownsPeople(5);
         expect(eNPC.static.numOfInstances).to.equal(10);
         const eVillager = eNPC.extend(Villager);
-        console.log(eVillager);
         const villager = eVillager.create({ name: 'Sandy' });
-        expect(eVillager.static.numOfInstances).to.be.undefined;
-        expect(eNPC.static.numOfInstances).to.equal(10);
-        eVillager.toggle('tracking');
-        console.log(eVillager);
-        const villager2 = eVillager.create({ name: 'Blazer' }); 
-        //expect(eVillager.static.numOfInstances).to.equal(1);
         expect(eNPC.static.numOfInstances).to.equal(11);
-
+        eVillager.toggle('tracking');
+        const villager2 = eVillager.create({ name: 'Blazer' }); 
+        expect(eVillager.static.numOfInstances).to.equal(1);
+        expect(eVillager.static.instances[villager.instanceID].instanceID).to.equal(villager.instanceID);
+        expect(eNPC.static.numOfInstances).to.equal(12);
+        expect(eNPC.static.instances[villager2.instanceID]).to.deep.equal(villager2);
+    }); 
+    it('can not change static variables within public, private or protected functions', function () {
+    
+        const eNPC = eCharacter.extend(NPC);
+        const npc1 = eNPC.create({ name: "bot" });
+        npc1.deleteDescriptions();
+        npc1.printAllDescriptions();
+        expect(eCharacter.static.allDescriptions['npc']).to.equal('npc is default character');
+        expect(npc1.testCount()).to.equal(1);
+        
+    });
+    it('can change functions from create and cant change functions after', function () {
+        let ghost = eCharacter.create({ name: "ghost", type: "ghost", health: 200, heal: function() { 
+            this.public.health += 10 + this.protected.backpack.potions.power;
+        } })
+        ghost.heal();
+        expect(ghost.health).to.equal(250);
+        ghost.heal = function() {
+            this.public.health += 2 * this.protected.backpack.potions.power;
+        }
+        expect(ghost.heal).to.throw(TypeError);
+        ghost.heal = function() {
+            this.health -= 20;
+        }
+        ghost.heal();
+        expect(ghost.health).to.equal(230);
     });
 })

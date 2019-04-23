@@ -15,8 +15,8 @@ const Character = {
         countCharacters: function () {
             this.static.trackCharacters();
         },
-        getDescriptions() {
-            this.static.allDescriptions[this.type] = this.info.description;
+        setDescriptions() {
+            this.static.allDescriptions[this.public.type] = this.public.info.description;
         }
     },
     public: {
@@ -34,11 +34,25 @@ const Character = {
         attack(enemy) {
             enemy.takeDamage(this.powers[0].attack);
         },
-        heal() {
-            this.health += 5;
+        heal: function() {
+            this.public.health += 5;
+        },
+        getHealth() {
+            return this.public.health;
         },
         takeDamage(damage) {
-            this.health -= damage;
+            this.public.health -= damage;
+        }, 
+        deleteDescriptions() {
+            this.static.allDescriptions = [];
+        },
+        testClearAll() {
+            this.static.clearAll();
+        },
+        printAllDescriptions() {
+            for (let type in this.static.allDescriptions) {
+                console.log(type + " : " + this.static.allDescriptions[type] + "\n");
+            }
         }
     },
     protected: {
@@ -63,16 +77,36 @@ const Player = {
         name: 'player',
         type: 'player',
         jump() {
-            this.position.x += 10;
+            this.public.position.x += 10;
         }
     }
 }
 const NPC = {
+    static: {
+        numOfNPCs: 0
+    },
+    init: {
+        countNPCs() {
+            this.static.numOfNPCs++;
+        }
+    },
     public: {
         type: 'npc',
         id: 0,
+        info: {
+            description: "npc is default character"
+        },
         talk() {
             return this.protected.dialogue();
+        },
+        testCount() {
+            return this.private.decreaseCount();
+        }
+    },
+    private: {
+        decreaseCount() {
+            this.static.numOfNPCs--;
+            return this.static.numOfNPCs;
         }
     },
     protected: {
@@ -102,7 +136,7 @@ const Enemy = {
     },
     protected: {
         calculatePath() {
-            return this.position.x += 10 * 2;
+            return this.public.position.x += 10 * 2;
         }
     }
 }

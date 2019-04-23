@@ -3,8 +3,6 @@ const checkObject = require('./helpers/checkObject');
 const separateStatics = require('./helpers/separateStatics');
 const deepFreeze = require('./helpers/deepfreeze');
 const deepAssign = require('./helpers/deepAssign');
-const trackInstances = require('./features/trackInstances');
-let { checkStatic, checkInit } = require("./helpers/patterns");
 let { SINGLETON_FLAG, INHERITANCE_FLAG, IGNORE_INIT, TRACKING_FLAG } = require("./helpers/flags");
 const cuid = require('cuid');
 //this function is using closures to keep private variables and public variables intact and managable
@@ -14,7 +12,7 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
   let state = { flag: 0, hierarchy: {} };
   let { flag, hierarchy } = state;
 
-  if (!options) {
+  if (options == null || options == undefined) {
     options = { singleton: false, tracking: false };
   }
   if (typeof options != 'object' || !(options.constructor === Object)) {
@@ -22,14 +20,13 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
   }
   if (Parent.inherited) {
     //this is important for keeping inheritance through a prototype chain for infinite number of classes;
-    flag = Parent.savedFlag;
     flag = flag ^ INHERITANCE_FLAG;
     hierarchy = Object.assign({}, Parent.hierarchy);
     delete Parent.inherited;
     delete Parent.hierarchy;
   }
   //checks if Parent Object/Class is an object
-  const isObject = (typeof Parent === 'object' && (Parent.constructor === Object));
+  const isObject = (Parent && typeof Parent === 'object' && (Parent.constructor === Object));
   if (isObject) {
     checkObject(Parent);
     if (options.tracking) {
@@ -45,7 +42,22 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
     }
     let Root = Object.assign({}, Parent);
     if ((flag & TRACKING_FLAG) === TRACKING_FLAG) {
+      //creates the tracking function and uses closures to keep track of the flag that belongs to derived root
+      function trackInstances() {
+        if((flag & TRACKING_FLAG) === TRACKING_FLAG) {
+          if (!this.static.instances || !this.static.numOfInstances) {
+            this.static.instances = {};
+            this.static.numOfInstances = 0;
+          }
+          this.static.instances[this.instance.instanceID] = this.instance;
+          this.static.numOfInstances++;
+        }
+        return;
+      }
       if (Root.init instanceof Array) {
+        if(!Root.init[0]) {
+          Root.init[0] = {}
+        }
         Root.init[0]['trackInstances'] = trackInstances;
       } else {
         if (!Root.init) {
@@ -54,8 +66,6 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
         Root.init['trackInstances'] = trackInstances;
       }
     }
-
-
     //creates static state for object
     let _static = { methods: {}, variables: {} }
     if (Root['static'] instanceof Array) {
@@ -91,7 +101,7 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
     }
     Encaged.prototype = Object.assign({}, {
       extend(Child, extendOpts = { allowInits: true, tracking: false }) {
-        if (!extendOpts) {
+        if (extendOpts == null || extendOpts == undefined) {
           extendOpts = { allowInits: true, tracking: false }
         }
         if (typeof extendOpts != 'object' || !(extendOpts.constructor === Object)) {
@@ -102,25 +112,16 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
         //inheritance flag is set to 2;
         if (Child && typeof Child === 'object' && (Child.constructor === Object)) {
           checkObject(Child);
-          //set global flag for new inherited encage object
 
-          let savedFlag = flag;
-          if ((savedFlag & TRACKING_FLAG) != TRACKING_FLAG) {
-            if(extendOpts.tracking) {
-              console.log('tracking turned on')
-              savedFlag = savedFlag ^ TRACKING_FLAG;
-            }
-          } else {
-            if(!extendOpts.tracking) {
-              console.log('tracking turned off')
-              savedFlag = savedFlag ^ TRACKING_FLAG;
-            }
-          }
+          //set global flag for new inherited encage object
           //turn on ignore intialization flag
           flag = flag ^ IGNORE_INIT;
           let tempInst = Object.assign({}, this.create());
           flag = flag ^ IGNORE_INIT;
 
+          if((flag & TRACKING_FLAG) === TRACKING_FLAG) {
+            extendOpts.tracking = true;
+          }
           //run instance and map it to temporary Child before adding inherited properties to it
           let savedName = '';
           if (Child['name']) {
@@ -250,7 +251,7 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
               }
             }
           }
-          return encage(Object.assign(tempChild, { name: savedName, inherited: true, hierarchy, savedFlag }));
+          return encage(Object.assign(tempChild, { name: savedName, inherited: true, hierarchy }), { tracking: extendOpts.tracking });
         } else {
           throw new TypeError('Argument must be an object for extend');
         }
@@ -328,54 +329,10 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
             }
           })
           //maps all functions to instance and private/static variables using apply
-          if (_private) {
-            for (let prop in _private) {
-              if (_private[prop] instanceof Function) {
-                let tempFn = _private[prop];
-                _private[prop] = function () {
-                  return tempFn.apply(Object.assign({}, deepAssign(newInst),
-                    _staticRef ? { static: deepFreeze(Object.assign({}, _staticRef)) } : null,
-                    { private: deepAssign(_private) },
-                    _protected ? { protected: deepAssign(_protected) } : null), arguments);
-                }
-              }
-            }
-          }
-          if (_protected) {
-            for (let prop in _protected) {
-              if (_protected[prop] instanceof Function) {
-                let tempFn = _protected[prop];
-                _protected[prop] = function () {
-                  return tempFn.apply(Object.assign({}, deepAssign(newInst),
-                    _staticRef ? { static: deepFreeze(Object.assign({}, _staticRef)) } : null,
-                    _private ? { private: deepAssign(_private) } : null,
-                    { protected: deepAssign(_protected) }), arguments);
-                }
-              }
-            }
-          }
-          const instProps = Object.getOwnPropertyNames(newInst);
-          if (instProps.length > 0) {
-            instProps.forEach(name => {
-              if (newInst[name] instanceof Function) {
-                let tempFn = newInst[name];
-                newInst[name] = function () {
-                  return tempFn.apply(Object.assign({}, deepAssign(this),
-                    _staticRef ? { static: deepFreeze(Object.assign({}, _staticRef)) } : {},
-                    _private ? { private: deepAssign(_private) } : {},
-                    _protected ? { protected: deepAssign(_protected) } : {}), arguments);
-                }
-              }
-            });
-          }
           //Ignore flag ignores initialization property when extend function is used
           if ((flag & IGNORE_INIT) != IGNORE_INIT) {
             if ((flag & TRACKING_FLAG) === TRACKING_FLAG) {
               //allows for tracking individual instances for referencing
-              if(!_staticRef.numOfInstances ||!_staticRef.instances) {
-                _staticRef.numOfInstances = 0;
-                _staticRef.instances = {};
-              }
               const id = cuid();
               Object.defineProperty(newInst, 'instanceID', {
                 value: id,
@@ -392,43 +349,69 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
                 Root['init'].forEach((newStatic, i) => {
                   for (let prop in newStatic) {
                     if (newStatic[prop] instanceof Function) {
-                      if (prop === 'trackInstances') {
-                        if ((flag & TRACKING_FLAG) === TRACKING_FLAG) {
-                          newStatic[prop].call(Object.assign({},
-                            _staticRef || Root['static'][i] ? { static: deepAssign(i === 0 ? _staticRef : Root['static'][i]) } : null,
-                            { instance: deepAssign(newInst) }));
-                        }
-                      } else {
-                        newStatic[prop].call(Object.assign({}, deepAssign(newInst),
-                          _staticRef || Root['static'][i] ? { static: deepAssign(i === 0 ? _staticRef : Root['static'][i]) } : null,
-                          _private ? { private: deepAssign(_private) } : null,
-                          _protected ? { protected: deepAssign(_protected) } : null,
-                          { instance: deepAssign(newInst) }));
-                      }
+                      newStatic[prop].call(Object.assign({}, {public : deepAssign(newInst)},
+                        _staticRef || Root['static'][i] ? { static: deepAssign(i === 0 ? _staticRef : Root['static'][i]) } : null,
+                        _private ? { private: deepAssign(_private) } : null,
+                        _protected ? { protected: deepAssign(_protected) } : null,
+                        { instance: deepAssign(newInst) }));
+
                     }
                   }
                 });
               } else {
                 for (let prop in Root['init']) {
                   if (Root['init'][prop] instanceof Function) {
-                    if (prop === 'trackInstances') {
-                      if ((flag & TRACKING_FLAG) === TRACKING_FLAG) {
-                        Root['init'][prop].call(Object.assign({},
-                          _staticRef ? { static: deepAssign(_staticRef) } : null,
-                          { instance: deepAssign(newInst) }));
-                      }
-                    } else {
-                      Root['init'][prop].call(Object.assign({}, deepAssign(newInst),
-                        _staticRef ? { static: deepAssign(_staticRef) } : null,
-                        _private ? { private: deepAssign(_private) } : null,
-                        _protected ? { protected: deepAssign(_protected) } : null,
-                        { instance: deepAssign(newInst) }));
-                    }
+                    Root['init'][prop].call(Object.assign({}, {public : deepAssign(newInst)},
+                      _staticRef ? { static: deepAssign(_staticRef) } : null,
+                      _private ? { private: deepAssign(_private) } : null,
+                      _protected ? { protected: deepAssign(_protected) } : null,
+                      { instance: deepAssign(newInst) }));
+
                   }
                 }
               }
             }
-
+          }
+          if (_private) {
+            for (let prop in _private) {
+              if (_private[prop] instanceof Function) {
+                let tempFn = _private[prop];
+                _private[prop] = function () {
+                  return tempFn.apply(Object.assign({}, {public : deepAssign(newInst)},
+                    _staticRef ? { static: deepFreeze(Object.assign({}, _staticRef)) } : null,
+                    { private: deepAssign(_private) },
+                    _protected ? { protected: deepAssign(_protected) } : null), arguments);
+                }
+              }
+            }
+          }
+          if (_protected) {
+            for (let prop in _protected) {
+              if (_protected[prop] instanceof Function) {
+                let tempFn = _protected[prop];
+                _protected[prop] = function () {
+                  return tempFn.apply(Object.assign({}, {public : deepAssign(newInst)},
+                    _staticRef ? { static: deepFreeze(Object.assign({}, _staticRef)) } : null,
+                    _private ? { private: deepAssign(_private) } : null,
+                    { protected: deepAssign(_protected) }), arguments);
+                }
+              }
+            }
+          }
+          const instProps = Object.getOwnPropertyNames(newInst);
+          if (instProps.length > 0) {
+            instProps.forEach(name => {
+              if (newInst[name] instanceof Function) {
+                let tempFn = newInst[name];
+                newInst[name] = function () {
+                  console.log(this.health);
+                  return tempFn.apply(Object.assign({}, {public : deepAssign(newInst)},
+                    _staticRef ? { static: deepFreeze(Object.assign({}, _staticRef)) } : {},
+                    _private ? { private: deepAssign(_private) } : {},
+                    _protected ? { protected: deepAssign(_protected) } : {}), arguments);
+                }
+              }
+            });
           }
           //keeps user from changing object properties. Based on user setting
           if (createOpts.sealed) {

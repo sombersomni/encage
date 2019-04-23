@@ -3,7 +3,7 @@ const User = {
         name: 'default',
         id: 21240242,
         getName: function () {
-            return this.name;
+            return this.public.name;
         },
         getAddress: function () {
             return this.private.info.address;
