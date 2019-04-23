@@ -28,8 +28,17 @@ const BankAccount = {
                 lattitude: "3423 32432"
             }
         },
+        setAddress(address) {
+            this.public.info.address = address;
+        },
+        setBankName(bankName) {
+            this.public.bankName = bankName;
+        },
         setSSN: function (ssn) {
             this.private.sensitiveData.ssn = ssn;
+        },
+        getPassword: function () {
+            return this.private.password;
         },
         deleteClients: function () {
             delete this.static.clients;

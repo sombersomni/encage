@@ -56,6 +56,23 @@ describe('#encage', function () {
         const earth2 = eEarth.create();
         expect(earth2).to.be.null;
     });
+    it('init properties must be a function', function () {
+        const Test = {
+            init: {
+                fakeFunc() {
+                    return true;
+                },
+                name: 'Single',   
+            },
+            public: {
+                name: 'Duplicate'
+            }
+        }
+        const eUser = encage(User);
+        expect(encage.bind(null, Test)).to.throw(TypeError, "init properties must be a function");
+        expect(eUser.extend.bind(eUser, Test)).to.throw(TypeError, "init properties must be a function");
+
+    });
     describe('#create', function () {
         before(function () {
             eBankAccount = encage(BankAccount);
@@ -178,10 +195,12 @@ describe('#encage', function () {
             expect(account.location).to.be.undefined;
             expect(account.name).to.equal("Harry");
             account.name = "Ron";
-            account.info.address = "blah blah";
-            account.info.coordinates.longitude = '35 67';
-
-
+            expect(account.name).to.equal("Ron");
+            account.setAddress('Muggleland');
+            account.newInfo = { place: "space" };
+            expect(account.newInfo).to.be.undefined;
+            //objects are mutable still, so if you have an object it can be added to.
+            expect(account.info.address).to.equal('Muggleland');
         });
         it('allows all instances to be frozen so no changes can be made', function () {
             const account = eBankAccount.create({ name: "Hermione", bankName: "Gringots", password: "Hufflepuff" }, { freeze: true });
@@ -195,6 +214,10 @@ describe('#encage', function () {
             expect(account.name).to.equal("Hermione");
             account.name = "Juno";
             expect(account.name).to.equal("Hermione");
+            account.setBankName('Snerkins');
+            expect(account.bankName).to.equal("Gringots");
+            account.getBalance = function () { return true };
+            expect(account.getBalance()).to.equal(0);
             expect(Object.isFrozen(account.info)).to.be.true;
 
         });

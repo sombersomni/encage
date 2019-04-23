@@ -1,8 +1,10 @@
 
 const checkObject = require('./helpers/checkObject');
 const separateStatics = require('./helpers/separateStatics');
+const checkInit = require('./helpers/checkInit');
 const deepFreeze = require('./helpers/deepfreeze');
 const deepAssign = require('./helpers/deepAssign');
+const mapRootToChild = require('./helpers/mapRootToChild');
 let { SINGLETON_FLAG, INHERITANCE_FLAG, IGNORE_INIT, TRACKING_FLAG } = require("./helpers/flags");
 const cuid = require('cuid');
 //this function is using closures to keep private variables and public variables intact and managable
@@ -44,7 +46,7 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
     if ((flag & TRACKING_FLAG) === TRACKING_FLAG) {
       //creates the tracking function and uses closures to keep track of the flag that belongs to derived root
       function trackInstances() {
-        if((flag & TRACKING_FLAG) === TRACKING_FLAG) {
+        if ((flag & TRACKING_FLAG) === TRACKING_FLAG) {
           if (!this.static.instances || !this.static.numOfInstances) {
             this.static.instances = {};
             this.static.numOfInstances = 0;
@@ -55,14 +57,8 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
         return;
       }
       if (Root.init instanceof Array) {
-        if(!Root.init[0]) {
-          Root.init[0] = {}
-        }
         Root.init[0]['trackInstances'] = trackInstances;
       } else {
-        if (!Root.init) {
-          Root.init = {};
-        }
         Root.init['trackInstances'] = trackInstances;
       }
     }
@@ -72,6 +68,15 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
       _static = separateStatics(Root['static'][0], _static)
     } else {
       _static = separateStatics(Root['static'], _static);
+    }
+    //makes sure init properties are all functions. 
+    //Throws error if not a function
+    if (Root['init']) {
+      if (Root['init'] instanceof Array) {
+        checkInit(Root['init'][0]);
+      } else {
+        checkInit(Root['init']);
+      }
     }
     function Encaged() {
       this.static = {};
@@ -119,7 +124,7 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
           let tempInst = Object.assign({}, this.create());
           flag = flag ^ IGNORE_INIT;
 
-          if((flag & TRACKING_FLAG) === TRACKING_FLAG) {
+          if ((flag & TRACKING_FLAG) === TRACKING_FLAG) {
             extendOpts.tracking = true;
           }
           //run instance and map it to temporary Child before adding inherited properties to it
@@ -152,105 +157,7 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
             }
           });
           //mapping items from Root object to new child object
-          for (let setting in Root) {
-            if (setting != 'private' && setting != 'name') {
-              if (allowInits === true) {
-                //maps static properties from Root objects
-                if (setting === 'static') {
-                  if (tempChild['static'] && tempChild['static'] instanceof Array) {
-                    if (Root['static'] instanceof Array) {
-                      let staticArr = Root['static'].slice();
-                      staticArr.unshift(tempChild['static'][0]);
-                      tempChild['static'] = staticArr;
-                    } else {
-                      tempChild['static'].push(Root['static']);
-                    }
-                  } else {
-                    if (Root['static'] instanceof Array) {
-                      let staticArr = Root['static'].slice();
-                      staticArr.unshift(null);
-                      tempChild['static'] = staticArr;
-                    } else {
-                      tempChild['static'] = [null, Root['static']];
-                    }
-                  }
-                }
-                else {
-                  //maps the initilization process from Root object
-                  if (setting === 'init') {
-                    if (tempChild['init'] && tempChild['init'] instanceof Array) {
-                      if (Root['init'] instanceof Array) {
-                        let initArr = Root['init'].slice();
-                        initArr.unshift(tempChild['init'][0]);
-                        tempChild['init'] = initArr;
-                      } else {
-                        tempChild['init'].push(Root['init']);
-                      }
-                    } else {
-                      if (Root['init'] instanceof Array) {
-                        let initArr = Root['init'].slice();
-                        initArr.unshift(null);
-                        tempChild['init'] = initArr;
-                      } else {
-                        tempChild['init'] = [null, Root['init']]
-                      }
-                    }
-                  } else {
-                    tempChild[setting] = Object.assign({}, Root[setting], tempChild[setting]);
-                  }
-                }
-              } else if (allowInits instanceof Array) {
-                if (setting === 'init') {
-                  let allowed = {};
-                  if (Root['init'] instanceof Array) {
-                    allowed = Root['init'].map(inits => {
-                      let tempAllowed = {};
-                      allowInits.forEach(each => {
-                        if (inits.hasOwnProperty(each)) {
-                          tempAllowed[each] = inits[each];
-                        }
-                      });
-                      return tempAllowed;
-                    });
-                  } else {
-                    allowInits.forEach(each => {
-                      if (Root['init'].hasOwnProperty(each)) {
-                        allowed[each] = Root['init'][each];
-                      }
-                    });
-                  }
-
-                  if (tempChild['init'] && tempChild['init'] instanceof Array) {
-                    if (allowed instanceof Array) {
-                      allowed.unshift(tempChild['static'][0]);
-                      tempChild['init'] = allowed;
-                    } else {
-                      tempChild['init'].push(allowed);
-                    }
-                  } else {
-                    tempChild['init'] = [null, allowed]
-                  }
-                } else if (setting === 'static') {
-                  if (tempChild['static'] && tempChild['static'] instanceof Array) {
-                    if (Root['static'] instanceof Array) {
-                      let staticArr = Root['static'].slice().unshift(tempChild['static'][0]);
-                      tempChild['static'] = staticArr;
-                    } else {
-                      tempChild['static'].push(Root['static']);
-                    }
-                  } else {
-                    tempChild['static'] = [null, Root['static']];
-                  }
-                } else {
-                  tempChild[setting] = Object.assign({}, Root[setting], tempChild[setting]);
-                }
-              } else {
-                if (setting != 'init' && setting != 'static') {
-                  tempChild[setting] = Object.assign({}, Root[setting], tempChild[setting]);
-                }
-              }
-            }
-          }
+          tempChild = mapRootToChild(tempChild, Root, allowInits);
           return encage(Object.assign(tempChild, { name: savedName, inherited: true, hierarchy }), { tracking: extendOpts.tracking });
         } else {
           throw new TypeError('Argument must be an object for extend');
@@ -258,10 +165,10 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
       },
       create(constructArgs = {}, createOpts = { sealed: false, freeze: false }) {
         let _staticRef = this.static;
-        if (constructArgs === null) {
+        if (constructArgs === null || constructArgs === undefined) {
           constructArgs = {};
         }
-        if (!createOpts) {
+        if (createOpts === null || createOpts === undefined) {
           createOpts = { sealed: false, freeze: false };
         }
         if (typeof createOpts != 'object' || !(createOpts.constructor === Object)) {
@@ -301,9 +208,9 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
           }
           //setup for private and protected state
           //sealing private so it can't be deleted from the outside.
-          let _private = Root.private ? Object.assign({}, Root.private) : null;
+          let _private = Root.private ? Object.assign({}, Root.private) : {};
           //sealing protected so it can't be deleted from the outside.
-          let _protected = Root.protected ? Object.assign({}, Root.protected) : null;
+          let _protected = Root.protected ? Object.assign({}, Root.protected) : {};
           //creates a new instance to configure before returning to user
           if (filteredPublicProps.length > 0) {
             filteredPublicProps.forEach(prop => {
@@ -349,10 +256,10 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
                 Root['init'].forEach((newStatic, i) => {
                   for (let prop in newStatic) {
                     if (newStatic[prop] instanceof Function) {
-                      newStatic[prop].call(Object.assign({}, {public : deepAssign(newInst)},
-                        _staticRef || Root['static'][i] ? { static: deepAssign(i === 0 ? _staticRef : Root['static'][i]) } : null,
-                        _private ? { private: deepAssign(_private) } : null,
-                        _protected ? { protected: deepAssign(_protected) } : null,
+                      newStatic[prop].call(Object.assign({}, { public: deepAssign(newInst) },
+                        _staticRef || Root['static'][i] ? { static: deepAssign(i === 0 ? _staticRef : Root['static'][i]) } : {},
+                        _private ? { private: deepAssign(_private) } : {},
+                        _protected ? { protected: deepAssign(_protected) } : {},
                         { instance: deepAssign(newInst) }));
 
                     }
@@ -361,10 +268,10 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
               } else {
                 for (let prop in Root['init']) {
                   if (Root['init'][prop] instanceof Function) {
-                    Root['init'][prop].call(Object.assign({}, {public : deepAssign(newInst)},
-                      _staticRef ? { static: deepAssign(_staticRef) } : null,
-                      _private ? { private: deepAssign(_private) } : null,
-                      _protected ? { protected: deepAssign(_protected) } : null,
+                    Root['init'][prop].call(Object.assign({}, { public: deepAssign(newInst) },
+                      _staticRef ? { static: deepAssign(_staticRef) } : {},
+                      _private ? { private: deepAssign(_private) } : {},
+                      _protected ? { protected: deepAssign(_protected) } : {},
                       { instance: deepAssign(newInst) }));
 
                   }
@@ -377,10 +284,10 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
               if (_private[prop] instanceof Function) {
                 let tempFn = _private[prop];
                 _private[prop] = function () {
-                  return tempFn.apply(Object.assign({}, {public : deepAssign(newInst)},
-                    _staticRef ? { static: deepFreeze(Object.assign({}, _staticRef)) } : null,
+                  return tempFn.apply(Object.assign({}, { public: deepAssign(newInst) },
+                    _staticRef ? { static: deepFreeze(Object.assign({}, _staticRef)) } : {},
                     { private: deepAssign(_private) },
-                    _protected ? { protected: deepAssign(_protected) } : null), arguments);
+                    _protected ? { protected: deepAssign(_protected) } : {}), arguments);
                 }
               }
             }
@@ -390,9 +297,9 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
               if (_protected[prop] instanceof Function) {
                 let tempFn = _protected[prop];
                 _protected[prop] = function () {
-                  return tempFn.apply(Object.assign({}, {public : deepAssign(newInst)},
-                    _staticRef ? { static: deepFreeze(Object.assign({}, _staticRef)) } : null,
-                    _private ? { private: deepAssign(_private) } : null,
+                  return tempFn.apply(Object.assign({}, { public: deepAssign(newInst) },
+                    _staticRef ? { static: deepFreeze(Object.assign({}, _staticRef)) } : {},
+                    _private ? { private: deepAssign(_private) } : {},
                     { protected: deepAssign(_protected) }), arguments);
                 }
               }
@@ -404,8 +311,7 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
               if (newInst[name] instanceof Function) {
                 let tempFn = newInst[name];
                 newInst[name] = function () {
-                  console.log(this.health);
-                  return tempFn.apply(Object.assign({}, {public : deepAssign(newInst)},
+                  return tempFn.apply(Object.assign({}, { public: deepAssign(newInst) },
                     _staticRef ? { static: deepFreeze(Object.assign({}, _staticRef)) } : {},
                     _private ? { private: deepAssign(_private) } : {},
                     _protected ? { protected: deepAssign(_protected) } : {}), arguments);
