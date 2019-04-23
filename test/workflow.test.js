@@ -24,15 +24,6 @@ describe('#encage workflow', function () {
         }
         eAccount = encage(Account);
     });
-    it('base case', function () {
-        //you can set your values for private protected and public using this syntax
-        const newAccount = eAccount.create({ 
-            name: "Rick Sanchez", 
-            id: 0324, 
-            accountNumber: 2222222, 
-            address: '123 Wubaluba Dr' });
-        console.log(newAccount);
-    });
     it('allows only Base Class to make changes to itself through static', function () {
         const Shape = {
             static: { numOfShapes: 0, countShapes() { this.static.numOfShapes++ } },
@@ -44,5 +35,19 @@ describe('#encage workflow', function () {
         //notice that we dont need to use .public when dealing with functions for instance
         shape.shapeCounter(); //this will not work!
         expect(eShape.static.numOfShapes).to.equal(1);
+    });
+    it('cant gain access to private variables by using newly added functions', function() {
+        const Artist = { 
+            public: { name: '', genre: '', getSongs() { return this.protected.songs } }, 
+            private: { bonusContent: {}, address: '' },
+            protected: { songs: [] }
+        }
+        const eArtist = encage(Artist);
+        const artist = eArtist.create({ name: 'Kendrick Lamar', songs: ['The Heart', 'DNA', 'ADHD']});
+        artist.getPrivate = function () { return this.private; }
+        artist.getProtected = function () { return this.protected; }
+        expect(artist.getPrivate()).to.be.undefined;
+        expect(artist.getProtected()).to.be.undefined;
+        expect(artist.getSongs()).to.include.ordered.members(['The Heart', 'DNA']);
     });
 });

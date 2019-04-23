@@ -85,7 +85,7 @@ eShape.static.countShapes(); //this will work!
 shape.shapeCounter(); //this will not work!
 console.log(eShape); //Prints out { static:{ numOfShapes: 1, countShapes: [Function: bound countShapes] } }
 ```
-    In the example above, we increase the count after an instance is made. However, we would have to run countShapes() every time we want to increment our numOfShapes. There is a better way to do this. 
+In the example above, we increase the count after an instance is made. However, we would have to run countShapes() every time we want to increment our numOfShapes. There is a better way to do this. 
 
 * Init
 ...This property allows you to add methods that you can deploy every time an instance is create. This is great for keeping track of how many instances you've created, do quick alterations to variables or do async calls to a server to receive data to assign to your instances or private/protected variables. Below is a better approach to creating a counter for objects created using the Shapes example. 
@@ -120,7 +120,7 @@ You can create instances using the create function provided by your Encage Objec
         setName: [Function] } */
     
 ```
-The create method takes an object containing the values that will overwrite the defaults set in our Account object. This allows you to enter your property values withou regarding the order, allowing for easier intergration with databases and apis that use jsons. The properties must exist in your Base object or the values will not be read! Make sure to also keep your property names unique across your public and private vairables, or it will cause overlap in value assignment.
+The create method takes an object containing the values that will overwrite the defaults set in our Account object. This allows you to enter your property values without regarding the order, allowing for easier intergration with databases and apis that use jsons. The properties must exist in your Base object or the values will not be read! Make sure to also keep your property names unique across your public and private vairables, or it will cause overlap in value assignment.
 ```js
 //DO NOT DO THIS
 const User = { public: { name: 'player' }, private: { name: 'secret' } }
@@ -131,6 +131,15 @@ const User = { public: { username: 'player' }, private: { name: 'secret' } }
 const eUser = encage(User);
 const user = eUser.create({ username: 'Scarlo', name: 'Scarlett Johansson' });
 console.log(user); //Prints out { username: 'Scarlo' }
+```
+You should also be aware that any defaults that exist in your Encage Object will be transfered to your instance, so make sure to use best default values.
+```js
+  const Artist = { 
+                public: { name: '', genre: '' }, 
+                private: { address: '' },
+            }
+            const eArtist = encage(Artist);
+            const artist = eArtist.create({ id: 21334, name: "Tame Impala", albums: [], tours: [], songs: [] });
 ```
 ## Deployment
 

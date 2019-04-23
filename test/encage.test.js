@@ -177,7 +177,6 @@ describe('#encage', function () {
             expect(user2.name).to.be.undefined;
             expect(user2.private).to.be.undefined;
             expect(user2.username).to.equal('Scarlo');
-            console.log(user2);
         });
         it('can create with an empty object', function () {
             const Test = {};
@@ -186,6 +185,16 @@ describe('#encage', function () {
             expect(eTest).to.be.an('object');
             const test = eTest.create({});
             expect(test).to.be.an('object');
+        })
+        it('ignores properties that are not described in Base Object', function() {
+            const Artist = { 
+                public: { name: '', genre: '' }, 
+                private: { bonusContent: {}, address: '' },
+                protected: { songs: [] }
+            }
+            const eArtist = encage(Artist);
+            const artist = eArtist.create({ id: 21334, name: "Tame Impala", albums: [], tours: [], songs: [] });
+            expect(artist).to.deep.equal({ name: "Tame Impala", genre: '' });
         })
         it('can allow for overwritten functions but only for public vars', function () {
             const account = eBankAccount.create({ name: "Melissa", bankName: "Chase", password: "password" });
