@@ -1,7 +1,16 @@
 # Encage
 
 Encage allows users to create objects with private variables by emulating C++'s classes. Easily manage your instances and hide your information with minimal effort
-
+```js
+const User = {
+  public: { name: "placeholder", showPassword() { return this.private.secret } },
+  private: { secret: "*" },
+}
+const eUser = encage(User, {tracking: true});
+const dash = eUser.create({ name: "Dash", secret: "test"});
+console.log(dash.private.secret); //throws a TypeError: Cannot read property 'secret' of undefined
+console.log(dash.showPassword()) //Prints "test"!
+```
 ## Getting Started
 
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
