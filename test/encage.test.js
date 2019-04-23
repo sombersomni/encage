@@ -31,6 +31,10 @@ describe('#encage', function () {
         expect(eUser2.name).to.equal('User2');
 
     });
+    it('can create empty encage object', function() {
+        const eObject = encage({});
+        console.log(eObject);
+    });
     it('can allow tracking of all instances', function () {
         const eUser = encage(User, { tracking : true });
         const user = eUser.create({ name: "sombersomni" });
@@ -103,19 +107,13 @@ describe('#encage', function () {
         });
         it('create or extend funcitons wont overide existing functions', function () {
             const Test = {
-                static: {
-                    create: function () {}
-                }
+                static: { create: function () {} }
             } 
             const Test2 = {
                 init: {
-                    useExtend() {
-                        this.static.extend();
-                    }
+                    useExtend() { this.static.extend();}
                 },
-                static: {
-                    extend: function () { console.log("extend is working"); }
-                }
+                static: { extend: function () { console.log("extend is working"); } }
             }
             const eTest = encage(Test);
             let test = eTest.create();

@@ -57,17 +57,16 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
         return;
       }
       if (Root.init instanceof Array) {
-        Root.init[0]['trackInstances'] = trackInstances;
+        if (!Root['init'][0]) {
+          Root['init'][0] = {};
+        }
+        Root['init'][0]['trackInstances'] = trackInstances;
       } else {
-        Root.init['trackInstances'] = trackInstances;
+        if (!Root['init']) {
+          Root['init'] = {};
+        }
+        Root['init']['trackInstances'] = trackInstances;
       }
-    }
-    //creates static state for object
-    let _static = { methods: {}, variables: {} }
-    if (Root['static'] instanceof Array) {
-      _static = separateStatics(Root['static'][0], _static)
-    } else {
-      _static = separateStatics(Root['static'], _static);
     }
     //makes sure init properties are all functions. 
     //Throws error if not a function
@@ -76,6 +75,15 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
         checkInit(Root['init'][0]);
       } else {
         checkInit(Root['init']);
+      }
+    }
+    //creates static state for object
+    let _static = { methods: {}, variables: {} }
+    if (Root['static']) {
+      if (Root['static'] instanceof Array) {
+        _static = separateStatics(Root['static'][0], _static)
+      } else {
+        _static = separateStatics(Root['static'], _static);
       }
     }
     function Encaged() {
