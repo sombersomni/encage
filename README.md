@@ -6,53 +6,45 @@ const User = {
   public: { name: "placeholder", showPassword() { return this.private.secret } },
   private: { secret: "*" },
 }
-const eUser = encage(User, {tracking: true});
+const eUser = encage(User, {tracking: true}); //tracks instances created automatically by setting tracking to true
 const dash = eUser.create({ name: "Dash", secret: "test"});
 console.log(dash.private.secret); //throws a TypeError: Cannot read property 'secret' of undefined
 console.log(dash.showPassword()) //Prints "test"!
 ```
 ## Getting Started
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
-
-### Prerequisites
-
-What things you need to install the software and how to install them
-
-```
-Give examples
-```
-
 ### Installing
-
-A step by step series of examples that tell you how to get a development env running
-
-Say what the step will be
-
+You can use npm to install this package. To view test you will need to download [mocha](https://mochajs.org/#installation) and [chai](https://www.chaijs.com/guide/installation/) for you devDependancies!
 ```
-Give the example
+npm install encage
 ```
-
-And repeat
-
+##Creating a Encage Object
+In javascript, you would typically use a constructor to create a Class. However, javascript Classes create instances that expose your variables publically, allowing for progammers or users to tamper with the code in unforseeable ways. To fix this problem, you can create an Encage Object which mimics a Class and gives you extra features for easier variable management. 
 ```
-until finished
+const eObject = encage({});
+console.log(eObject) //Prints { static: {} }
 ```
-
-End with an example of getting some data out of the system or using it for a little demo
-
-## Running the tests
-
-Explain how to run the automated tests for this system
-
-### Break down into end to end tests
-
-Explain what these tests test and why
-
+It's as simple as that. Encage takes a javascript object as an argument. 
+###Setting Up Object
+Below is a basic example of How to set up your Base Object.
 ```
-Give an example
+const Account = {
+  name: "Account" //sets name for Base Object so Encage can keep references for inheritance
+  public: { //sets all your public variables
+    name: "customer", 
+    id: 0,
+    getBalance(){ return this.protected.balance }, // use functions internally to retrieve your information
+    setBalance(balance){ this.protected.balance = balance }
+  },
+  private: { sensitiveData : {}, weeklyReports : [] }, //sets private variables for this Class only
+  protected: { accountNumber: 1112223333, password: "test", balance: 0 }, //sets private variables for this and inherited Objects
+  static: { numOfAccounts: 0, customerIDs : [], premiumMembers: 0 }, //sets variables used by Encaged Object for tracking instances
+  init: { //allows you to initialize functions immediately when instance is created similar to constructors
+    trackAccounts() {
+      this.static.numOfAccounts++;
+      this.static.customerIDs.push(this.instance.id);
+  }
 ```
-
 ### And coding style tests
 
 Explain what these tests test and why
