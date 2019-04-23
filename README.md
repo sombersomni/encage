@@ -14,11 +14,11 @@ console.log(dash.showPassword()) //Prints "test"!
 ## Getting Started
 
 ### Installing
-You can use npm to install this package. To view test you will need to download [mocha](https://mochajs.org/#installation) and [chai](https://www.chaijs.com/guide/installation/) for you devDependancies!
+You can use npm to install this package. To run test you will need to download [mocha](https://mochajs.org/#installation) and [chai](https://www.chaijs.com/guide/installation/) for you devDependancies!
 ```
 npm install encage
 ```
-##Creating a Encage Object
+## Creating a Encage Object
 In javascript, you would typically use a constructor to create a Class. However, javascript Classes create instances that expose your variables publically, allowing for progammers or users to tamper with the code in unforseeable ways. To fix this problem, you can create an Encage Object which mimics a Class and gives you extra features for easier variable management. 
 ```js
 const eObject = encage({});
@@ -26,9 +26,9 @@ console.log(eObject) //Prints { static: {} }
 ```
 It's as simple as that. Encage takes a javascript object as an argument. 
 
-##Basic Usage
+## Basic Usage
 
-###Setting Up Object
+### Setting Up Object
 Below is a basic example of How to set up your Base Class. You can conly use objects to create you configuration for Class. DO NOT USE CONSTRUCTORS, CONSTRUCTOR INSTANCES OR CLASSES!
 ```js
 const Account = {
@@ -55,24 +55,24 @@ console.log(eAccount) //Prints out { static: { numOfAccounts: 0, customerIDs: []
 As you can see, you can start your class off with generic values which can be changed later with each new instance. 
 Here's a break down for each property
 ###Object Properties
-⋅⋅* Public
-...This holds all your variables and functions that you want to be publically accessable for every instance object you create. This is similar to creating normal variables, however we use this naming convention to keep the code more manageable. 
+* Public
+  This holds all your variables and functions that you want to be publically accessable for every instance object you create. This is similar to creating normal variables, however we use this naming convention to keep the code more manageable. 
 
-⋅⋅* Private
-...This holds all your vairables you want to remain hidden and safe. No one can access this variable, not even you, unless you create a public function to retreive the variables value.
+* Private
+  This holds all your vairables you want to remain hidden and safe. No one can access this variable, not even you, unless you create a public function to retreive the variables value.
 ```js
 const User = {
     public: { getPrivateAddress() { return this.private.address } },
     private: { address: '555 Fake Dr' }
 }
 ```
-...Private variables can not be passed down to inherited Classes! You may want to use the Protected property if you want this feature.
+  Private variables can not be passed down to inherited Classes! You may want to use the Protected property if you want this feature.
 
-⋅⋅* Protected
-...Protected variables work just like private variables, except they can be passed down to Classes that inherit from this Encage Object. 
+* Protected
+  Protected variables work just like private variables, except they can be passed down to Classes that inherit from this Encage Object. 
 
-⋅⋅* Static
-...These variables are used to keep track of your instances from your Base Class (Encage Object). They are publically available from the Base Class, but can not be tampered with by instances. Instances can only read the data from static variables but cannot write to the variables. Here's an example below.
+* Static
+  These variables are used to keep track of your instances from your Base Class (Encage Object). They are publically available from the Base Class, but can not be tampered with by instances. Instances can only read the data from static variables but cannot write to the variables. Here's an example below.
 ```js
 const Shape = {
     static: { numOfShapes: 0, countShapes() { this.static.numOfShapes++ } },
@@ -85,9 +85,9 @@ eShape.static.countShapes(); //this will work!
 shape.shapeCounter(); //this will not work!
 console.log(eShape); //Prints out { static:{ numOfShapes: 1, countShapes: [Function: bound countShapes] } }
 ```
-In the example above, we increase the count after an instance is made. However, we would have to run countShapes() every time we want to increment our numOfShapes. There is a better way to do this. 
+    In the example above, we increase the count after an instance is made. However, we would have to run countShapes() every time we want to increment our numOfShapes. There is a better way to do this. 
 
-⋅⋅* Init
+* Init
 ...This property allows you to add methods that you can deploy every time an instance is create. This is great for keeping track of how many instances you've created, do quick alterations to variables or do async calls to a server to receive data to assign to your instances or private/protected variables. Below is a better approach to creating a counter for objects created using the Shapes example. 
 ```js
 const Shape = {
@@ -100,7 +100,7 @@ const Shape = {
 ```
 The code is now easier to manage. Once the init functions are completed, they are no longer used until the next instance is created. Keep this in mind if you need to use this function throughout your code. 
 
-###Creating Instances
+### Creating Instances
 You can create instances using the create function provided by your Encage Object. This code extends the Account example above.
 ```js
     const Account = {...}; //code is above under Setting Up Object
