@@ -1,7 +1,7 @@
 {
   "name": "encage",
   "version": "1.0.0",
-  "description": "create private and static variables in a class like C++",
+  "description": "emulates c++ for creating private variables",
   "main": "dist/index.js",
   "scripts": {
     "test": "mocha",
@@ -14,13 +14,17 @@
     "url": "git+https://github.com/somberSomni/encage.git"
   },
   "keywords": [
-    "encage",
+    "c++",
+    "inheritance",
     "private",
+    "protected",
+    "management",
+    "privacy",
     "static",
     "constructor",
-    "classes"
+    "class"
   ],
-  "author": "Somber Somni",
+  "author": "SomberSomni <sombersomni@gmail.com>",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/somberSomni/encage/issues"
@@ -36,5 +40,9 @@
   },
   "dependencies": {
     "cuid": "^2.1.6"
-  }
+  },
+  "files": [
+    "dist/encage.js",
+    "dist/encage.min.js"
+  ]
 }
