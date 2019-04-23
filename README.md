@@ -20,14 +20,14 @@ npm install encage
 ```
 ##Creating a Encage Object
 In javascript, you would typically use a constructor to create a Class. However, javascript Classes create instances that expose your variables publically, allowing for progammers or users to tamper with the code in unforseeable ways. To fix this problem, you can create an Encage Object which mimics a Class and gives you extra features for easier variable management. 
-```
+```js
 const eObject = encage({});
 console.log(eObject) //Prints { static: {} }
 ```
 It's as simple as that. Encage takes a javascript object as an argument. 
 ###Setting Up Object
 Below is a basic example of How to set up your Base Object.
-```
+```js
 const Account = {
   name: "Account" //sets name for Base Object so Encage can keep references for inheritance
   public: { //sets all your public variables
