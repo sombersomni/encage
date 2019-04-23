@@ -33,7 +33,7 @@ describe('#encage', function () {
     });
     it('can create empty encage object', function() {
         const eObject = encage({});
-        console.log(eObject);
+        expect(eObject.static).to.be.empty;
     });
     it('can allow tracking of all instances', function () {
         const eUser = encage(User, { tracking : true });
@@ -165,6 +165,20 @@ describe('#encage', function () {
             const account = eBankAccount.create();
             expect(account.name).to.equal('');
         })
+        it('discards duplicate property names in objects', function() {
+            const User = { public: { name: 'player' }, private: { name: 'secret' } }
+            const eUser = encage(User);
+            const user = eUser.create({ name: 'Scarlo' });
+            expect(user.name).to.equal('Scarlo');
+            //INSTEAD DO THIS
+            const User2 = { public: { username: 'player' }, private: { name: 'secret' } }
+            const eUser2 = encage(User2);
+            const user2 = eUser2.create({ username: 'Scarlo', name: 'Scarlett Johansson' });
+            expect(user2.name).to.be.undefined;
+            expect(user2.private).to.be.undefined;
+            expect(user2.username).to.equal('Scarlo');
+            console.log(user2);
+        });
         it('can create with an empty object', function () {
             const Test = {};
             const eTest = encage(Test);

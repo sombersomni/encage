@@ -126,7 +126,6 @@ describe('#encageInst', function () {
             private: { secret: "*" },
         }
         const eUser = encage(User, {tracking: true});
-        console.log(eUser);
         const dash = eUser.create({ name: "Dash", secret: "test"});
         expect(dash.private).to.be.undefined;
         expect(dash.showPassword()).to.equal("test") //Prints "test"!      
