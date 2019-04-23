@@ -72,14 +72,14 @@ const User = {
   Protected variables work just like private variables, except they can be passed down to Classes that inherit from this Encage Object. 
 
 * Static
-  These variables are used to keep track of your instances from your Base Class (Encage Object). They are publically available from the Base Class, but can not be tampered with by instances. Instances can only read the data from static variables but cannot write to the variables. Here's an example below.
+  These variables are used to keep track of your instances from your Base Class (Encage Object). They are publically available from the Base Class, but can not be tampered with by instances. Instances can only read the data from static variables but cannot write to the variables. In addition, Encage Objects can only use static properties or properties attached to the object after its creation. It has no access to instance properties. Here's an example below.
 ```js
 const Shape = {
     static: { numOfShapes: 0, countShapes() { this.static.numOfShapes++ } },
     public: { shapeCounter() { this.static.numOfShapes++ } }
 }
-const eShape = encage(Shape);
-const shape = eShape.create();
+const eShape = encage(Shape); //creates Encage Object
+const shape = eShape.create(); //creates an instance
 eShape.static.countShapes(); //this will work!
 //notice that we dont need to use .public when dealing with functions for instance
 shape.shapeCounter(); //this will not work!
@@ -133,14 +133,8 @@ const user = eUser.create({ username: 'Scarlo', name: 'Scarlett Johansson' });
 console.log(user); //Prints out { username: 'Scarlo' }
 ```
 You should also be aware that any defaults that exist in your Encage Object will be transfered to your instance, so make sure to use best default values.
-```js
-  const Artist = { 
-                public: { name: '', genre: '' }, 
-                private: { address: '' },
-            }
-            const eArtist = encage(Artist);
-            const artist = eArtist.create({ id: 21334, name: "Tame Impala", albums: [], tours: [], songs: [] });
-```
+
+###Controling Private Variables
 ## Deployment
 
 Add additional notes about how to deploy this on a live system
