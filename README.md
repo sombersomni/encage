@@ -69,7 +69,7 @@ Here's a break down for each property
 ###Object Properties
 * Public
   This holds all your variables and functions that you want to be publically accessable for every instance object you create. This is similar to creating normal variables, however we use this naming convention to keep the code more manageable. 
-  ```js
+```js
   const User = {
     public: { 
         name: "user", 
@@ -78,9 +78,9 @@ Here's a break down for each property
     }
 }
 ```
-
-* Private
+* **Private:**
   This holds all your vairables you want to remain hidden and safe. No one can access this variable, not even you, unless you create a public function to retreive the variables value.
+
 ```js
 const User = {
     public: { getPrivateAddress() { return this.private.address } },
@@ -106,8 +106,8 @@ console.log(eShape.static.numOfShapes) //Prints out 1
 ```
 In the example above, we increase the count after an instance is made. However, we would have to run countShapes() every time we want to increment our numOfShapes. There is a better way to do this. 
 
-* Init
-...This property allows you to add methods that you can deploy every time an instance is create. This is great for keeping track of how many instances you've created, do quick alterations to variables or do async calls to a server to receive data to assign to your instances or private/protected variables. Below is a better approach to creating a counter for objects created using the Shapes example. 
+* **Init:**
+  This property allows you to add methods that you can deploy every time an instance is create. This is great for keeping track of how many instances you've created, do quick alterations to variables or do async calls to a server to receive data to assign to your instances or private/protected variables. Below is a better approach to creating a counter for objects created using the Shapes example. 
 ```js
 const Shape = {
     static: { numOfShapes: 0 },
@@ -358,4 +358,7 @@ const eSquare = eShape.extend(Square, { allowInits: ["countShapes"] });
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the MIT License.
+
+## Thank Yous
+Thank you to Eric Elliott for creating cuid. The automatic iding wouldn't be possible without his [cuid](https://github.com/ericelliott/cuid) library.

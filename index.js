@@ -1,15 +1,22 @@
-
-const checkObject = require('./helpers/checkObject');
-const separateStatics = require('./helpers/separateStatics');
-const checkInit = require('./helpers/checkInit');
-const deepFreeze = require('./helpers/deepfreeze');
-const deepAssign = require('./helpers/deepAssign');
-const mapRootToChild = require('./helpers/mapRootToChild');
-let { SINGLETON_FLAG, INHERITANCE_FLAG, IGNORE_INIT, TRACKING_FLAG } = require("./helpers/flags");
+/**
+ * encage.js
+ * Classes that create private and protected variables
+ * Automatiacally tracks instances from Class
+ *
+ * Copyright (c) Somber Somni 2019
+ * MIT License
+ */
+const checkObject = require('./src/checkObject');
+const separateStatics = require('./src/separateStatics');
+const checkInit = require('./src/checkInit');
+const deepFreeze = require('./src/deepfreeze');
+const deepAssign = require('./src/deepAssign');
+const mapRootToChild = require('./src/mapRootToChild');
+let { SINGLETON_FLAG, INHERITANCE_FLAG, IGNORE_INIT, TRACKING_FLAG } = require("./src/flags");
 const cuid = require('cuid');
 //this function is using closures to keep private variables and public variables intact and managable
 let numOfEncageInstances = 0;
-function encage(Parent, options = { singleton: false, tracking: false }) {
+function encage(Parent = {}, options = { singleton: false, tracking: false }) {
   //keep track of the encage state for user specified options
   let state = { flag: 0, hierarchy: {} };
   let { flag, hierarchy } = state;
@@ -20,17 +27,17 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
   if (typeof options != 'object' || !(options.constructor === Object)) {
     throw new TypeError('You need to use an object for your options');
   }
-  if (Parent.inherited) {
-    //this is important for keeping inheritance through a prototype chain for infinite number of classes;
-    flag = flag ^ INHERITANCE_FLAG;
-    hierarchy = Object.assign({}, Parent.hierarchy);
-    delete Parent.inherited;
-    delete Parent.hierarchy;
-  }
   //checks if Parent Object/Class is an object
   const isObject = (Parent && typeof Parent === 'object' && (Parent.constructor === Object));
   if (isObject) {
     checkObject(Parent);
+    if (Parent.inherited) {
+      //this is important for keeping inheritance through a prototype chain for infinite number of classes;
+      flag = flag ^ INHERITANCE_FLAG;
+      hierarchy = Object.assign({}, Parent.hierarchy);
+      delete Parent.inherited;
+      delete Parent.hierarchy;
+    }
     if (options.tracking) {
       flag = flag ^ TRACKING_FLAG;
     }
@@ -113,7 +120,7 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
       }
     }
     Encaged.prototype = Object.assign({}, {
-      extend(Child, extendOpts = { allowInits: true, tracking: false }) {
+      extend(Child = {}, extendOpts = { allowInits: true, tracking: false }) {
         if (extendOpts == null || extendOpts == undefined) {
           extendOpts = { allowInits: true, tracking: false }
         }

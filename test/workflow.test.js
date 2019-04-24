@@ -1,4 +1,4 @@
-const encage = require('../src/index.js');
+var encage = require('../index.js');
 const expect = require('chai').expect;
 let eAccount;
 describe('#encage workflow', function () {

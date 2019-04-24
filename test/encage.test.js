@@ -1,5 +1,5 @@
 var chai = require('chai');
-var encage = require('../src/index.js');
+var encage = require('../index.js');
 var expect = chai.expect;
 
 //test objects and constructors
@@ -12,6 +12,8 @@ const Earth = require('./examples/Earth');
 let eBankAccount;
 describe('#encage', function () {
     it('throws error if encage takes any but Function or Object', function () {
+        expect(encage()).to.be.an('object');
+        expect(encage({})).to.be.an('object');
         expect(encage.bind(null, "config")).to.throw(TypeError, 'Must use a Object as an argument');
         expect(encage.bind(null, 3)).to.throw(TypeError, 'Must use a Object as an argument');
         expect(encage.bind(null, true)).to.throw(TypeError, 'Must use a Object as an argument');
@@ -20,7 +22,7 @@ describe('#encage', function () {
     });
     it('allows user to name their object for referencing later', function () {
         const eUser = encage(User);
-        expect(eUser.name).to.equal('encageId0');
+        expect(eUser.name).to.equal('encageId2');
         const User2 = {
             name: "User2",
             public: {
@@ -264,7 +266,6 @@ describe('#encage', function () {
         it('can only take an onbject or nothing as argument', function () {
             // expect(eBankAccount.extend.bind(eBankAccount, {})).to.be.an('object');
             expect(eBankAccount.extend({})).to.be.an('object');
-            expect(eBankAccount.extend).to.throw(TypeError, 'Argument must be an object for extend');
             expect(eBankAccount.extend.bind(eBankAccount, function Test() { })).to.throw(TypeError, 'Argument must be an object for extend');
             expect(eBankAccount.extend.bind(eBankAccount, 5)).to.throw(TypeError, 'Argument must be an object for extend');
             expect(eBankAccount.extend.bind(eBankAccount, [])).to.throw(TypeError, 'Argument must be an object for extend');

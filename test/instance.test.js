@@ -1,5 +1,5 @@
 var chai = require('chai');
-var encage = require('../src/index.js');
+var encage = require('../index.js');
 var expect = chai.expect;
 
 //test objects and constructors
@@ -118,9 +118,20 @@ describe('#encageInst', function () {
             public: { name: "placeholder", showPassword() { return this.private.secret } },
             private: { secret: "*" },
         }
-        const eUser = encage(User, {tracking: true});
-        const dash = eUser.create({ name: "Dash", secret: "test"});
+        const eUser = encage(User, { tracking: true });
+        const dash = eUser.create({ name: "Dash", secret: "test" });
         expect(dash.private).to.be.undefined;
         expect(dash.showPassword()).to.equal("test") //Prints "test"!      
+    });
+    it('toggle throws error if not string', function () {
+        const character = eCharacter.create({ name: "spike" });
+        eCharacter.toggle("singleton");
+        const character2 = eCharacter.create({ name: "spike" });
+        expect(character2).to.be.null;
+        expect(eCharacter.toggle.bind(null, 3)).to.throw(TypeError, 'Option name needs to be a string. Either use tracking or singleton');
+        expect(eCharacter.toggle.bind(null, {})).to.throw(TypeError, 'Option name needs to be a string. Either use tracking or singleton');
+        expect(eCharacter.toggle.bind(null, function test(){})).to.throw(TypeError, 'Option name needs to be a string. Either use tracking or singleton');
+        expect(eCharacter.toggle.bind(null, null)).to.throw(TypeError, 'Option name needs to be a string. Either use tracking or singleton');
+        expect(eCharacter.toggle.bind(null, [3])).to.throw(TypeError, 'Option name needs to be a string. Either use tracking or singleton');
     });
 })
