@@ -1,5 +1,5 @@
 {
-  "name": "@sombersomni/encage",
+  "name": "encage",
   "version": "1.0.0",
   "description": "emulates c++ for creating objects with private variables",
   "main": "index.js",
