@@ -246,6 +246,13 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
           //maps all functions to instance and private/static variables using apply
           //Ignore flag ignores initialization property when extend function is used
           let waitingForInits = [];
+
+          //binds the private, protected, public and static variables together to allow user to use in functions
+          const boundContext = Object.assign({}, { public: deepAssign(newInst) },
+            _staticRef ? { static: deepAssign(_staticRef) } : {},
+            { private: deepAssign(_private) },
+            _protected ? { protected: deepAssign(_protected) } : {});
+
           if ((flag & IGNORE_INIT) != IGNORE_INIT) {
             if ((flag & TRACKING_FLAG) === TRACKING_FLAG) {
               //allows for tracking individual instances for referencing
@@ -308,10 +315,7 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
               if (_private[prop] instanceof Function) {
                 let tempFn = _private[prop];
                 _private[prop] = function () {
-                  return tempFn.apply(Object.assign({}, { public: deepAssign(newInst) },
-                    _staticRef ? { static: deepFreeze(Object.assign({}, _staticRef)) } : {},
-                    { private: deepAssign(_private) },
-                    _protected ? { protected: deepAssign(_protected) } : {}), arguments);
+                  return tempFn.apply(boundContext, arguments);
                 }
               }
             }
@@ -321,10 +325,7 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
               if (_protected[prop] instanceof Function) {
                 let tempFn = _protected[prop];
                 _protected[prop] = function () {
-                  return tempFn.apply(Object.assign({}, { public: deepAssign(newInst) },
-                    _staticRef ? { static: deepFreeze(Object.assign({}, _staticRef)) } : {},
-                    _private ? { private: deepAssign(_private) } : {},
-                    { protected: deepAssign(_protected) }), arguments);
+                  return tempFn.apply(boundContext, arguments);
                 }
               }
             }
@@ -335,11 +336,7 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
               if (newInst[name] instanceof Function) {
                 let tempFn = newInst[name];
                 newInst[name] = function () {
-                  return tempFn.apply(Object.assign({}, { public: deepAssign(newInst) },
-                    _staticRef ? { static: deepFreeze(Object.assign({}, _staticRef)) } : {},
-                    _private ? { private: deepAssign(_private) } : {},
-                    _protected ? { protected: deepAssign(_protected) } : {}), arguments);
-                  //protects from instances internals being tampered with
+                  return tempFn.apply(boundContext, arguments);
                 }
               }
             });

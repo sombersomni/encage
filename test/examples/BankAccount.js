@@ -2,7 +2,7 @@ const BankAccount = {
     init: {
         addClient: function () {
             this.static.numOfAccounts++;
-            this.static.clients.push(this.name);
+            this.static.clients.push(this.public.name);
         }
     },
     static: {

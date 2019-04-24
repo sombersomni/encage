@@ -17,8 +17,10 @@
     "c++",
     "cplusplus",
     "encapsulation",
+    "instances",
     "inheritance",
     "private",
+    "privacy",
     "protected",
     "object",
     "management",
@@ -28,7 +30,7 @@
     "class"
   ],
   "author": "SomberSomni <sombersomni@gmail.com>",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/somberSomni/encage/issues"
   },

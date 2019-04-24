@@ -11,7 +11,6 @@ describe('#encage workflow', function () {
                 getBalance() { return this.protected.balance }, // use functions internally to retrieve your information
                 setBalance(balance) { this.protected.balance = balance },
                 setName(name) { this.public.name = name },
-                test() { return this; }
             },
             private: { sensitiveData: {}, weeklyReports: [] }, //sets private variables for this Class only
             protected: { accountNumber: 1112223333, password: "test", balance: 0 }, //sets private variables for this and inherited Objects
@@ -24,18 +23,6 @@ describe('#encage workflow', function () {
             }
         }
         eAccount = encage(Account);
-    });
-    it('allows only Base Class to make changes to itself through static', function () {
-        const Shape = {
-            static: { numOfShapes: 0, countShapes() { this.static.numOfShapes++ } },
-            public: { shapeCounter() { this.static.numOfShapes++ } }
-        }
-        const eShape = encage(Shape);
-        const shape = eShape.create();
-        eShape.static.countShapes(); //this will work!
-        //notice that we dont need to use .public when dealing with functions for instance
-        shape.shapeCounter(); //this will not work!
-        expect(eShape.static.numOfShapes).to.equal(1);
     });
     it('cant gain access to private variables by using newly added functions', function () {
         const Artist = {
@@ -71,12 +58,12 @@ describe('#encage workflow', function () {
         worker.setSSN('superman', 222222222);
         expect(worker.getSSN('superman')).to.equal(222222222) //Prints out 222222222
     });
-    it('what happens when you return this', function () {
+    it('can create over 100 instances and track them', function () {
         const NPC = { public: { showSecret() { return this.private.secret } }, private: { secret: '' } }
         const eNPC = encage(NPC, { tracking: true });
         eNPC.createTownsPeople = function (num) {
             for (let i = 0; i < num; i++) {
-                this.create({ name: "towney"});
+                this.create({ name: "towney" });
             }
         }
         eNPC.createTownsPeople(100);
@@ -86,5 +73,37 @@ describe('#encage workflow', function () {
         eNPC.toggle('tracking'); //turns it back off
         const npc3 = eNPC.create({ name: 'Potion Master' });
         expect(eNPC.static.numOfInstances).to.equal(102) //Prints out 2
+    });
+    it('can keep changes made in public variable inside static', function () {
+        const BankAccount = {
+            init: {
+                addClient: function () {
+                    this.static.numOfAccounts++;
+                    this.private.balance *= this.private.interest;
+                    this.static.clientNames[this.public.id] = this.public.name
+                    this.static.clients.push(this.instance);
+                }
+            },
+            static: {
+                numOfAccounts: 0,
+                clientNames: {},
+                clients: []
+            },
+            public: {
+                name: "",
+                id: 0,
+                setName(name) {
+                    this.public.name = name;
+                    //helps update your static list
+                    this.static.clientNames[this.public.id] = this.public.name
+                }
+            },
+            private: { interest: 1.2, balance: 0 }
+        }
+        const eBankAccount = encage(BankAccount);
+        const account = eBankAccount.create({ name: "Tony Stark", id: 1 });
+        expect(eBankAccount.static.clientNames[account.id]).to.equal('Tony Stark'); //Prints out
+        account.setName("Iron Man");
+        expect(eBankAccount.static.clientNames[account.id]).to.equal('Iron Man'); //Prints out
     });
 });

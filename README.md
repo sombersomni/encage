@@ -1,4 +1,4 @@
-# Encage
+# Encage - Protect Your Instances
 
 Encage allows users to create objects with private variables by emulating C++'s classes. Easily manage your instances and hide your information with minimal effort
 ```js
@@ -11,6 +11,17 @@ const dash = eUser.create({ name: "Dash", secret: "test"});
 console.log(dash.private.secret); //throws a TypeError: Cannot read property 'secret' of undefined
 console.log(dash.showPassword()) //Prints "test"!
 ```
+## Features
+
+- Create instances with private and protected variables
+- Allows you to track instances automatically
+- Emulates c++ Classes
+- Supports the [Promise](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) API
+- Create Singletons
+- More inheritance control
+- Toggle tracking of instances
+- Protects your code
+
 ## Getting Started
 
 ### Installing
@@ -58,6 +69,15 @@ Here's a break down for each property
 ###Object Properties
 * Public
   This holds all your variables and functions that you want to be publically accessable for every instance object you create. This is similar to creating normal variables, however we use this naming convention to keep the code more manageable. 
+  ```js
+  const User = {
+    public: { 
+        name: "user", 
+        setName(name){ this.public.name = name },
+        getName() { return this.public.name }
+    }
+}
+```
 
 * Private
   This holds all your vairables you want to remain hidden and safe. No one can access this variable, not even you, unless you create a public function to retreive the variables value.
@@ -69,11 +89,11 @@ const User = {
 ```
   Private variables can not be passed down to inherited Classes! You may want to use the Protected property if you want this feature.
 
-* Protected
+* **Protected:**
   Protected variables work just like private variables, except they can be passed down to Classes that inherit from this Encage Object. 
 
-* Static
-  These variables are used to keep track of your instances from your Base Class (Encage Object). They are publically available from the Base Class, but can not be tampered with by instances. Instances can only read the data from static variables but cannot write to the variables. In addition, Encage Objects can only use static properties or properties attached to the object after its creation. It has no access to instance properties. Here's an example below.
+* **Static:**
+  These variables are used to keep track of your instances from your Base Class (Encage Object). They are publically available from the Base Class. Instances can also read and write data in static variables. This isn't exactly like C++, but it allows you to keep open communicaton with your Encage Object. In addition, Encage Objects can only use static properties or properties attached to the object after its creation. It has no access to instance properties. Here's an example below.
 ```js
 const Shape = {
     static: { numOfShapes: 0, countShapes() { this.static.numOfShapes++ } },
@@ -81,10 +101,8 @@ const Shape = {
 }
 const eShape = encage(Shape); //creates Encage Object
 const shape = eShape.create(); //creates an instance
-eShape.static.countShapes(); //this will work!
-//notice that we dont need to use .public when dealing with functions for instance
-shape.shapeCounter(); //this will not work!
-console.log(eShape); //Prints out { static:{ numOfShapes: 1, countShapes: [Function: bound countShapes] } }
+eShape.static.countShapes();
+console.log(eShape.static.numOfShapes) //Prints out 1
 ```
 In the example above, we increase the count after an instance is made. However, we would have to run countShapes() every time we want to increment our numOfShapes. There is a better way to do this. 
 
@@ -99,7 +117,7 @@ const Shape = {
     console.log(eShape.static.numOfShapes) //prints out 1
 }
 ```
-The code is now easier to manage. Once the init functions are completed, they are no longer used until the next instance is created. Keep this in mind if you need to use this function throughout your code. 
+The code is now easier to manage. Once the init functions are completed, they are no longer used until the next instance is created. Keep this in mind if you need to use this function throughout your code. Init also can not take any arguments in its function since it runs internally in the Encage Object!
 
 ### Creating Instances
 You can create instances using the create function provided by your Encage Object. This code extends the Account example above.
@@ -136,6 +154,50 @@ console.log(user); //Prints out { username: 'Scarlo' }
 ```
 You should also be aware that any defaults that exist in your Encage Object will be transfered to your instance, so make sure to use best default values.
 
+### Initializing Instances
+The init property allows you to control the flow of how your instance is initialized. You have access to the public,private, protected and static variables during this process.
+```js
+ const BankAccount = {
+    init: {
+        addClient: function () {
+            this.static.numOfAccounts++;
+            this.private.balance *= this.private.interest;
+            this.static.clientNames[this.public.id] = this.public.name
+            this.static.clients.push(this.instance);
+        }
+    },
+    static: {
+        numOfAccounts: 0,
+        clientNames: {},
+        clients: []
+    },
+    public: {
+        name: "",
+        id: 0,
+        setName(name) {
+            this.public.name = name;
+            //helps update your static list
+            this.static.clientNames[this.public.id] = this.public.name
+        }
+    },
+    private: { interest: 1.2, balance: 0 }
+}
+const eBankAccount = encage(BankAccount);
+const account = eBankAccout.create({ name: "Tony Stark" , id: 1 });
+console.log(eBankAccount);
+/* { static:
+   { numOfAccounts: 1,
+     clientNames: { '1': 'Tony Stark' },
+     clients: [ [Object] ] } } */
+account.setName("Iron Man"); 
+console.log(eBankAccount) ;
+/*{ static:
+   { numOfAccounts: 1,
+     clientNames: { '1': 'Iron Man' },
+     clients: [ [Object] ] } } */
+```
+Managing your instances has never been easier!
+
 ###Controling Private Variables
 Private variables are not accessible in your instances, so you must create functions in your Base Class to tamper with them. You can also create private functions!
 ```js
@@ -169,19 +231,31 @@ const Employee = {
         name: "n/a",
         company: "global inc",
         getPersonalData(password) { return password == "test" ? this.private.personalData : null },
+        getEarnings() { return this.private.earnings };
     },
-    private: { personalData: {} },
+    private: { personalData: {}, earnings: [] },
     init: {
         assignSSN() {
             return fetch('./getData') //must return a promise or it will work properly
             .then(response => response.json())
             .then(data => { this.private.personalData = data } );
+        },
+        fetchEarnings: async function () {
+            try {
+                const response = await axios.get('/earnings');
+                this.private.earnings = response.data.earnings;
+            } catch (err) {
+                console.log(err);
+            }
         }
     }
 }
 const eEmployee = encage(Employee);
 const worker = eEmployee.create({ name: "Homer", company: "Duff" });
-worker.ready.then(() => { console.log(worker.getPersonalData()) }); //Prints out private data!
+worker.ready.then(() => { 
+    console.log(worker.getPersonalData());
+    console.log(worker.getEarnings());
+    }); //Prints out private data!
 ```
 This works incredibly well when working with databases. You must use the **_ready_** property of your instance so you can continue where you promises left off.
 
@@ -217,17 +291,16 @@ console.log(slime.instanceOf(eEnemy)) //Prints out true
 ```
 
 ## Managing Instances
-Encage makes it easy to manage your instances. Set the **tracking** option to true when creating a Class and encage will keep track of all your instances automatically, no matter how deep your inheritance chain goes!
+Encage makes it even easier to manage your instances. Set the **tracking** option to true when creating a Class and encage will keep track of all your instances automatically, no matter how deep your inheritance chain goes!
 ```js
-const Player = { public: { name: '' }};
-const NPC = { public: { showSecret() { return this.private.secret } }, private: { secret: '' }}
-const eNPC = ePlayer.extend(NPC, { tracking: true });
+const NPC = { public: { showSecret() { return this.private.secret } }, private: { secret: '' } }
+const eNPC = encage(NPC, { tracking: true });
 eNPC.createTownsPeople = function (num) {
     for (let i = 0; i < num; i++) {
-        this.create({ name: "towney", secret: i.toString()});
+        this.create({ name: "towney"});
     }
 }
-eNPC.createTownsPeople(5);
+eNPC.createTownsPeople(2);
 console.log(eNPC);
 /* Prints out
 { static:
@@ -238,44 +311,51 @@ console.log(eNPC);
   createTownsPeople: [Function] }
 */
 ```
-Each instance is assigned an id and is stored into a hash table for quick referencing. The Encage Object keeps the order in which the instances were initialized and also the total number of instances. You can also toggle this tracking feature on and off whever you need it. 
+Each instance is assigned an id and is stored into a hash table for quick referencing. The Encage Object keeps the order in which the instances were initialized and also the total number of instances. The **_extend_** method also comes with the tracking option. You can also toggle this tracking feature on and off whever you need it. 
 ```js
 const npc1 = eNPC.create({ name: 'Shopkeeper' });
 eNPC.toggle('tracking'); //turns it off
 const npc2 = eNPC.create({name : 'Customer' });
-eNPC.toggle('tracking'); //turns it back off
+eNPC.toggle('tracking'); //turns it back on
 const npc3 = eNPC.create({name : 'Potion Master' });
 console.log(eNPC.static.numOfInstances) //Prints out 2
 ```
 
 ### Creating a Singleton
-Emulating c++ has never been easier. Encage allows you to create singletons by setting the **singleton** property to true.
+Singletons are Classes that can create only one instance. Encage allows you to create singletons by setting the **singleton** property to true.
 ```js
 const options = { singleton: true };
-const Earth = { public:{ name: "Earth" }, private:{...}};
-        const eEarth = encage(Earth, options);
-        const earth = eEarth.create();  
-        console.log(earth)
-        const earth2 = eEarth.create();
+const Earth = { public:{ name: "Earth" } };
+const eEarth = encage(Earth, options);
+const earth = eEarth.create();  
+console.log(earth) //Prints out { name: 'Earth' }
+const earth2 = eEarth.create();
+console.log(earth2) //Prints out null
+const earth3 = eEarth.create();
+console.log(earth3) //Prints out null
 ```
-Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us.
-
-## Versioning
-
-We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/your/project/tags). 
-
-## Authors
-
-* **Somber Somni** - *Initial work* - [PurpleBooth](https://github.com/somberSomni)
-
-See also the list of [contributors](https://github.com/your/project/contributors) who participated in this project.
+You can also toggle this feature on and off using the toggle function provied by the Encage Object.
+```js
+eEarth.toggle("singleton");
+```
+### Controlling Init
+The methods you use inside of a Base Class's init property will also be used by inherited Classes by default. To turn this feature off, you can set the **allowInit** to false in your extend function.
+```js
+const eCircle = eShape.extend(Circle, { allowInits: false });
+``` 
+you can also control which init functions you want the inherited Class to use when creating instances!
+```js
+const Shape = {
+    init: {
+        countShapes() {},
+        ignoredFunc() {}
+        ...
+}
+const Square = {...}
+const eShape = encage(Shape);
+const eSquare = eShape.extend(Square, { allowInits: ["countShapes"] });
+```
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
-
-## Acknowledgments
-
-* Hat tip to anyone whose code was used
-* Inspiration
-* etc
