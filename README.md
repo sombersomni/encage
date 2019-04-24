@@ -198,7 +198,7 @@ console.log(eBankAccount) ;
 ```
 Managing your instances has never been easier!
 
-###Controling Private Variables
+### Controling Private Variables
 Private variables are not accessible in your instances, so you must create functions in your Base Class to tamper with them. You can also create private functions!
 ```js
 const Employee = {
