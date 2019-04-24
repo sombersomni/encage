@@ -87,6 +87,8 @@ describe('#encage', function () {
         it('takes only an object as an argument or nothing', function () {
             expect(eBankAccount.create({})).to.be.an('object');
             expect(eBankAccount.create()).to.be.an('object');
+            expect(eBankAccount.create(null)).to.be.an('object');
+            expect(eBankAccount.create(undefined)).to.be.an('object');
             expect(eBankAccount.create.bind(eBankAccount, 5)).to.throw(TypeError, 'Argument must be an object for create');
             expect(eBankAccount.create.bind(eBankAccount, function Test() { })).to.throw(TypeError, 'Argument must be an object for create');
             expect(eBankAccount.create.bind(eBankAccount, false)).to.throw(TypeError, 'Argument must be an object for create');
@@ -94,6 +96,7 @@ describe('#encage', function () {
         });
         it('checks if options are an object or nothing at all', function () {
             expect(eBankAccount.create.bind(eBankAccount, null, 1)).to.throw(TypeError, 'You need to use an object for your options');
+            expect(eBankAccount.create.bind(eBankAccount, null, false)).to.throw(TypeError, 'You need to use an object for your options');
             expect(eBankAccount.create.bind(eBankAccount, null, function Test() { })).to.throw(TypeError, 'You need to use an object for your options');
             expect(eBankAccount.create.bind(eBankAccount, null, [])).to.throw(TypeError, 'You need to use an object for your options');
             expect(eBankAccount.create.bind(eBankAccount, null, new Set())).to.throw(TypeError, 'You need to use an object for your options');

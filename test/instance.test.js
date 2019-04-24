@@ -84,6 +84,9 @@ describe('#encageInst', function () {
         expect(eNPC.static.numOfInstances).to.equal(10);
         const eVillager = eNPC.extend(Villager);
         const villager = eVillager.create({ name: 'Sandy' });
+        expect(villager.instanceOf(eVillager)).to.be.true;
+        expect(villager.instanceOf(eNPC)).to.be.true;
+        expect(villager.instanceOf(ePlayer)).to.be.true;
         expect(eNPC.static.numOfInstances).to.equal(11);
         eVillager.toggle('tracking');
         const villager2 = eVillager.create({ name: 'Blazer' });

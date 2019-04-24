@@ -32,12 +32,13 @@ It's as simple as that. Encage takes a javascript object as an argument.
 Below is a basic example of How to set up your Base Class. You can conly use objects to create you configuration for Class. DO NOT USE CONSTRUCTORS, CONSTRUCTOR INSTANCES OR CLASSES!
 ```js
 const Account = {
+    name: "Account",
     public: { //sets all your public variables
         name: "customer",
         id: 0,
         getBalance() { return this.protected.balance }, // use functions internally to retrieve your information
         setBalance(balance) { this.protected.balance = balance },
-        setName(name) { this.public.name = name },
+        setName(name) { this.public.name = name }, //must use this.public or changes may not take effect
     },
     private: { sensitiveData: {} }, //sets private variables for this Class only
     protected: { accountNumber: 1112223333, password: "test", address: '' }, //sets private variables for this and inherited Objects
@@ -131,22 +132,132 @@ const User = { public: { username: 'player' }, private: { name: 'secret' } }
 const eUser = encage(User);
 const user = eUser.create({ username: 'Scarlo', name: 'Scarlett Johansson' });
 console.log(user); //Prints out { username: 'Scarlo' }
+//Scarlett Johansson is not shown because its private!!
 ```
 You should also be aware that any defaults that exist in your Encage Object will be transfered to your instance, so make sure to use best default values.
 
 ###Controling Private Variables
-## Deployment
+Private variables are not accessible in your instances, so you must create functions in your Base Class to tamper with them. You can also create private functions!
+```js
+const Employee = {
+    public: {
+        name: '',
+        getSSN(password) { return this.private.checkPassword(password) ? this.private.ssn : null },
+        setSSN(password, ssn) { this.private.ssn = this.private.checkPassword(password) ? ssn : this.private.ssn }
+    },
+    private: {
+        ssn: 0,
+        password: '1234',
+        checkPassword(password) { return password == this.private.password }
+    }
+}
+const eEmployee = encage(Employee);
+const worker = eEmployee.create({ name: 'Clark Kent', ssn: 55555555, password: 'superman' });
+console.log(worker) //Prints out { name: 'Clark Kent', getSSN: [Function], setSSN: [Function] }
+console.log(worker.getSSN('zod')) //Prints out null
+console.log(worker.getSSN('superman')) //Prints out 55555555
+worker.setSSN('superman', 222222222)
+console.log(worker.getSSN('superman')) //Prints out 222222222
+```
+How is the private accessible? Any function placed in your Base Class is given global access to all your variables through the this keyword. **_DO NOT RETURN THIS OR YOU WILL EXPOSE YOUR INSTANCE AND ALL ITS PRIVATE VALUES__**.
 
-Add additional notes about how to deploy this on a live system
+### Working with Promises
+This is a basic example, but you may wanna take basic steps to secure your code. You should use the **_init_** property and add a function that can securely set up the private variable when the instance intializes.
+```js
+const Employee = {
+    public: {
+        name: "n/a",
+        company: "global inc",
+        getPersonalData(password) { return password == "test" ? this.private.personalData : null },
+    },
+    private: { personalData: {} },
+    init: {
+        assignSSN() {
+            return fetch('./getData') //must return a promise or it will work properly
+            .then(response => response.json())
+            .then(data => { this.private.personalData = data } );
+        }
+    }
+}
+const eEmployee = encage(Employee);
+const worker = eEmployee.create({ name: "Homer", company: "Duff" });
+worker.ready.then(() => { console.log(worker.getPersonalData()) }); //Prints out private data!
+```
+This works incredibly well when working with databases. You must use the **_ready_** property of your instance so you can continue where you promises left off.
 
-## Built With
+## Inheritance
 
-* [Dropwizard](http://www.dropwizard.io/1.0.2/docs/) - The web framework used
-* [Maven](https://maven.apache.org/) - Dependency Management
-* [ROME](https://rometools.github.io/rome/) - Used to generate RSS Feeds
+### Using extend
+Encage objects come with another function called extend, which allows you to inherit properties from the Base Class.
 
-## Contributing
+```js
+const Character = { public: { name: '', type: 'generic' }, private: { inventory: [] }};
+const Enemy = { public: { type: 'enemy' } };
+const Slime = { public: { description: 'a gelatinous creature' }};
+const eCharacter = encage(Character);
+const eEnemy = eCharacter.extend(Enemy);
+const eSlime = eEnemy.extend(Slime);
+const slime = eSlime.create({ name: "silver slime" });
+console.log(slime); 
+/* Prints out
+{ type: 'enemy',
+  description: 'a gelatinous creature',
+  name: 'silver slime' } */
+```
+This works like normal inheritance. The newest Encage Object will outweight all other properties, and any properties left are derived from the parent.
+You can also manage the names of your Encage Classes by using the name property. Otherwise, Encage handles labeling names internally.
+```
+const Enemy = { name: "Enemy", public: { type: 'enemy' } };
+```
+### Using instanceOf
+Because we are using objects, we lose the ability to check if instances belong to a Class. Luckily, instances come with an instanceOf function that solves this problem!
+```js
+console.log(slime.instanceOf(eCharacter)) //Prints out true
+console.log(slime.instanceOf(eEnemy)) //Prints out true
+```
 
+## Managing Instances
+Encage makes it easy to manage your instances. Set the **tracking** option to true when creating a Class and encage will keep track of all your instances automatically, no matter how deep your inheritance chain goes!
+```js
+const Player = { public: { name: '' }};
+const NPC = { public: { showSecret() { return this.private.secret } }, private: { secret: '' }}
+const eNPC = ePlayer.extend(NPC, { tracking: true });
+eNPC.createTownsPeople = function (num) {
+    for (let i = 0; i < num; i++) {
+        this.create({ name: "towney", secret: i.toString()});
+    }
+}
+eNPC.createTownsPeople(5);
+console.log(eNPC);
+/* Prints out
+{ static:
+   { instances:
+      { cjuup703e000fp4v10w9o42o0: [Object],
+        cjuup703e000gp4v15run1r02: [Object] },
+     numOfInstances: 2 },
+  createTownsPeople: [Function] }
+*/
+```
+Each instance is assigned an id and is stored into a hash table for quick referencing. The Encage Object keeps the order in which the instances were initialized and also the total number of instances. You can also toggle this tracking feature on and off whever you need it. 
+```js
+const npc1 = eNPC.create({ name: 'Shopkeeper' });
+eNPC.toggle('tracking'); //turns it off
+const npc2 = eNPC.create({name : 'Customer' });
+eNPC.toggle('tracking'); //turns it back off
+const npc3 = eNPC.create({name : 'Potion Master' });
+console.log(eNPC.static.numOfInstances) //Prints out 2
+```
+
+### Creating a Singleton
+Emulating c++ has never been easier. Encage allows you to create singletons by setting the **singleton** property to true.
+```js
+const options = { singleton: true };
+const Earth = { public:{ name: "Earth" }, private:{...}};
+        const eEarth = encage(Earth, options);
+        const earth = eEarth.create();  
+        console.log(earth)
+        const earth2 = eEarth.create();
+```
 Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us.
 
 ## Versioning
@@ -155,7 +266,7 @@ We use [SemVer](http://semver.org/) for versioning. For the versions available, 
 
 ## Authors
 
-* **Billie Thompson** - *Initial work* - [PurpleBooth](https://github.com/PurpleBooth)
+* **Somber Somni** - *Initial work* - [PurpleBooth](https://github.com/somberSomni)
 
 See also the list of [contributors](https://github.com/your/project/contributors) who participated in this project.
 

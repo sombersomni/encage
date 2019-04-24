@@ -245,6 +245,7 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
           })
           //maps all functions to instance and private/static variables using apply
           //Ignore flag ignores initialization property when extend function is used
+          let waitingForInits = [];
           if ((flag & IGNORE_INIT) != IGNORE_INIT) {
             if ((flag & TRACKING_FLAG) === TRACKING_FLAG) {
               //allows for tracking individual instances for referencing
@@ -264,28 +265,43 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
                 Root['init'].forEach((newStatic, i) => {
                   for (let prop in newStatic) {
                     if (newStatic[prop] instanceof Function) {
-                      newStatic[prop].call(Object.assign({}, { public: deepAssign(newInst) },
+                      const returnValue = newStatic[prop].call(Object.assign({}, { public: deepAssign(newInst) },
                         _staticRef || Root['static'][i] ? { static: deepAssign(i === 0 ? _staticRef : Root['static'][i]) } : {},
                         _private ? { private: deepAssign(_private) } : {},
                         _protected ? { protected: deepAssign(_protected) } : {},
                         { instance: deepAssign(newInst) }));
-
+                      if (returnValue instanceof Promise) {
+                        waitingForInits.push(returnValue);
+                      }
                     }
                   }
                 });
               } else {
                 for (let prop in Root['init']) {
                   if (Root['init'][prop] instanceof Function) {
-                    Root['init'][prop].call(Object.assign({}, { public: deepAssign(newInst) },
+                    const returnValue = Root['init'][prop].call(Object.assign({}, { public: deepAssign(newInst) },
                       _staticRef ? { static: deepAssign(_staticRef) } : {},
                       _private ? { private: deepAssign(_private) } : {},
                       _protected ? { protected: deepAssign(_protected) } : {},
                       { instance: deepAssign(newInst) }));
 
+                    if (returnValue instanceof Promise) {
+                      waitingForInits.push(returnValue);
+                    }
                   }
                 }
               }
             }
+          }
+          //sets ready variable for instance to wait for promises to finish
+          if (waitingForInits.length > 0) {
+            const initPromise = Promise.all(waitingForInits);
+            Object.defineProperty(newInst, 'ready', {
+              value: initPromise,
+              writeable: false,
+              configurable: false,
+              enumerable: false
+            });
           }
           if (_private) {
             for (let prop in _private) {
@@ -323,6 +339,7 @@ function encage(Parent, options = { singleton: false, tracking: false }) {
                     _staticRef ? { static: deepFreeze(Object.assign({}, _staticRef)) } : {},
                     _private ? { private: deepAssign(_private) } : {},
                     _protected ? { protected: deepAssign(_protected) } : {}), arguments);
+                  //protects from instances internals being tampered with
                 }
               }
             });
