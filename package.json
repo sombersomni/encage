@@ -5,9 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha",
-    "build": "webpack",
-    "start": "node dist/encage.min.js",
-    "dev": "node src/index.js"
+    "build": "webpack"
   },
   "repository": {
     "type": "git",
