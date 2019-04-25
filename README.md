@@ -185,7 +185,7 @@ The init property allows you to control the flow of how your instance is initial
     private: { interest: 1.2, balance: 0 }
 }
 const eBankAccount = encage(BankAccount);
-const account = eBankAccout.create({ name: "Tony Stark" , id: 1 });
+const account = eBankAccount.create({ name: "Tony Stark" , id: 1 });
 console.log(eBankAccount);
 /* { static:
    { numOfAccounts: 1,
@@ -316,9 +316,10 @@ console.log(eNPC);
 ```
 Each instance is assigned an id and is stored into a hash table for quick referencing. You can access the id using the **instanceID** property given to the object.
 ```js
+const User = { name: 'User', public: { name: '' } };
 const eUser = encage(User, { tracking : true });
 const user = eUser.create({ name: "sombersomni" });
-console.log(user.instanceID); //Prints out cjuw16bky00002kv16bjx0fbm
+console.log(user.instanceID);//Prints out cjuw16bky00002kv16bjx0fbm
 ```
 
 The Encage Object keeps the order in which the instances were initialized and also the total number of instances. The **_extend_** method also comes with the tracking option. You can also toggle this tracking feature on and off whever you need it. 
