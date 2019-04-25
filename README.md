@@ -66,9 +66,10 @@ console.log(eAccount) //Prints out { static: { numOfAccounts: 0, customerIDs: []
 ```
 As you can see, you can start your class off with generic values which can be changed later with each new instance. 
 Here's a break down for each property
-###Object Properties
-* Public
-  This holds all your variables and functions that you want to be publically accessable for every instance object you create. This is similar to creating normal variables, however we use this naming convention to keep the code more manageable. 
+### Object Properties
+
+* **Public:**
+  This holds all your variables and functions that you want to be publically accessible for every instance object you create. This is similar to creating normal variables, however we use the naming convention below to keep the code more manageable. 
 ```js
   const User = {
     public: { 
@@ -96,8 +97,7 @@ const User = {
   These variables are used to keep track of your instances from your Base Class (Encage Object). They are publically available from the Base Class. Instances can also read and write data in static variables. This isn't exactly like C++, but it allows you to keep open communicaton with your Encage Object. In addition, Encage Objects can only use static properties or properties attached to the object after its creation. It has no access to instance properties. Here's an example below.
 ```js
 const Shape = {
-    static: { numOfShapes: 0, countShapes() { this.static.numOfShapes++ } },
-    public: { shapeCounter() { this.static.numOfShapes++ } }
+    static: { numOfShapes: 0, countShapes() { this.static.numOfShapes++ } }
 }
 const eShape = encage(Shape); //creates Encage Object
 const shape = eShape.create(); //creates an instance
@@ -107,7 +107,7 @@ console.log(eShape.static.numOfShapes) //Prints out 1
 In the example above, we increase the count after an instance is made. However, we would have to run countShapes() every time we want to increment our numOfShapes. There is a better way to do this. 
 
 * **Init:**
-  This property allows you to add methods that you can deploy every time an instance is create. This is great for keeping track of how many instances you've created, do quick alterations to variables or do async calls to a server to receive data to assign to your instances or private/protected variables. Below is a better approach to creating a counter for objects created using the Shapes example.
+This property allows you to add methods that you can deploy every time an instance is create. This is great for keeping track of how many instances you've created, do quick alterations to variables or do async calls to a server to receive data to assign to your instances or private/protected variables. Below is a better approach to designing a counter for objects created using the Shapes example.
    
 ```js
 const Shape = {
@@ -153,7 +153,7 @@ const user = eUser.create({ username: 'Scarlo', name: 'Scarlett Johansson' });
 console.log(user); //Prints out { username: 'Scarlo' }
 //Scarlett Johansson is not shown because its private!!
 ```
-You should also be aware that any defaults that exist in your Encage Object will be transfered to your instance, so make sure to use best default values.
+You should also be aware that any defaults that exist in your Encage Object will be transfered to your instance, so make sure to use well defined default values.
 
 ### Initializing Instances
 The init property allows you to control the flow of how your instance is initialized. You have access to the public,private, protected and static variables during this process.
@@ -222,10 +222,10 @@ console.log(worker.getSSN('superman')) //Prints out 55555555
 worker.setSSN('superman', 222222222)
 console.log(worker.getSSN('superman')) //Prints out 222222222
 ```
-How is the private accessible? Any function placed in your Base Class is given global access to all your variables through the this keyword. **_DO NOT RETURN THIS OR YOU WILL EXPOSE YOUR INSTANCE AND ALL ITS PRIVATE VALUES__**.
+How is the private even accessible? Any function placed in your Base Class is given global access to all your variables through the this keyword. **_DO NOT RETURN THIS OR YOU WILL EXPOSE YOUR INSTANCE AND ALL ITS PRIVATE VALUES__**.
 
 ### Working with Promises
-This is a basic example, but you may wanna take basic steps to secure your code. You should use the **_init_** property and add a function that can securely set up the private variable when the instance intializes.
+This is a basic example, but you may want to take basic steps to secure your code. You should use the **_init_** property and add a function that can securely set up the private variable when the instance intializes.
 ```js
 const Employee = {
     public: {
@@ -258,7 +258,7 @@ worker.ready.then(() => {
     console.log(worker.getEarnings());
     }); //Prints out private data!
 ```
-This works incredibly well when working with databases. You must use the **_ready_** property of your instance so you can continue where you promises left off.
+This works incredibly well when working with databases. You must use the **_ready_** property of your instance so you can continue where your promises left off.
 
 ## Inheritance
 
@@ -281,9 +281,10 @@ console.log(slime);
 ```
 This works like normal inheritance. The newest Encage Object will outweight all other properties, and any properties left are derived from the parent.
 You can also manage the names of your Encage Classes by using the name property. Otherwise, Encage handles labeling names internally.
-```
+```js
 const Enemy = { name: "Enemy", public: { type: 'enemy' } };
 ```
+
 ### Using instanceOf
 Because we are using objects, we lose the ability to check if instances belong to a Class. Luckily, instances come with an instanceOf function that solves this problem!
 ```js
@@ -312,7 +313,14 @@ console.log(eNPC);
   createTownsPeople: [Function] }
 */
 ```
-Each instance is assigned an id and is stored into a hash table for quick referencing. The Encage Object keeps the order in which the instances were initialized and also the total number of instances. The **_extend_** method also comes with the tracking option. You can also toggle this tracking feature on and off whever you need it. 
+Each instance is assigned an id and is stored into a hash table for quick referencing. You can access the id using the **instanceID** property given to the object.
+```js
+const eUser = encage(User, { tracking : true });
+const user = eUser.create({ name: "sombersomni" });
+console.log(user.instanceID); //Prints out cjuw16bky00002kv16bjx0fbm
+```
+
+The Encage Object keeps the order in which the instances were initialized and also the total number of instances. The **_extend_** method also comes with the tracking option. You can also toggle this tracking feature on and off whever you need it. 
 ```js
 const npc1 = eNPC.create({ name: 'Shopkeeper' });
 eNPC.toggle('tracking'); //turns it off

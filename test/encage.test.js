@@ -42,6 +42,7 @@ describe('#encage', function () {
         const user = eUser.create({ name: "sombersomni" });
         const user2 = eUser.create({ name: "beauty" });
         expect(user.name).to.equal(eUser.static.instances[user.instanceID].name);
+        console.log(user.instanceID);
         expect(user2.name).to.equal(eUser.static.instances[user2.instanceID].name);
         //stops tracking
         eUser.toggle('tracking');
