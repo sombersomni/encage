@@ -1,5 +1,5 @@
 {
-  "name": "encage",
+  "name": "@sombersomni/encage",
   "version": "1.0.1",
   "description": "emulates c++ for creating objects with private variables",
   "main": "index.js",
@@ -12,9 +12,10 @@
     "url": "git+https://github.com/somberSomni/encage.git"
   },
   "keywords": [
-    "c++",
-    "cplusplus",
+    "encage",
     "encapsulation",
+    "scope",
+    "access control",
     "instances",
     "inheritance",
     "private",
