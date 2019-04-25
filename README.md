@@ -52,7 +52,7 @@ const Account = {
         setName(name) { this.public.name = name }, //must use this.public or changes may not take effect
     },
     private: { sensitiveData: {} }, //sets private variables for this Class only
-    protected: { accountNumber: 1112223333, password: "test", address: '' }, //sets private variables for this and inherited Objects
+    protected: { accountNumber: 1112223333, password: "test", balance: 0 }, //sets private variables for this and inherited Objects
     static: { numOfAccounts: 0, customerIDs: [], premiumMembers: 0 }, //sets variables used by Encaged Object for tracking instances
     init: { //allows you to initialize functions immediately when instance is created similar to constructors
         trackAccounts() {
