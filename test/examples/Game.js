@@ -31,6 +31,9 @@ const Character = {
             description: "this is a character"
         },
         powers: [{ attack: 100 }, { attack: 100 }],
+        showPowers() {
+            return this.public.powers;
+        },
         attack(enemy) {
             enemy.takeDamage(this.powers[0].attack);
         },

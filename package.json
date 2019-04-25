@@ -1,6 +1,6 @@
 {
   "name": "encage",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "emulates c++ for creating objects with private variables",
   "main": "index.js",
   "scripts": {

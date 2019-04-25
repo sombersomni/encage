@@ -134,4 +134,116 @@ describe('#encageInst', function () {
         expect(eCharacter.toggle.bind(null, null)).to.throw(TypeError, 'Option name needs to be a string. Either use tracking or singleton');
         expect(eCharacter.toggle.bind(null, [3])).to.throw(TypeError, 'Option name needs to be a string. Either use tracking or singleton');
     });
+    it('cant change object once received', function() {
+        const User = { 
+            name: 'User', 
+            public: { 
+                name: '', 
+                getData() { return this.private.sensitiveData }
+            }, 
+            private: { 
+                sensitiveData: 
+                { 
+                    address: '333 Super Ln', 
+                    SSN: 99999999, 
+                    stuff: [ { code: 333 }, 'stuff']
+                }
+            } 
+        };
+        const eUser = encage(User, { tracking : true });
+        const user = eUser.create({ name: "sombersomni" });
+        const data = user.getData();
+        expect(data.SSN).to.equal(99999999)
+        data.SSN = 3333333333;
+        data.stuff[0].code = 222;
+        expect(user.getData().SSN).to.equal(99999999);
+    });
+    it('cant change array once received', function() {
+        const eCharacter = encage(Character);
+        const eEnemy = eCharacter.extend(Enemy);
+        const enemy = eEnemy.create({ name: "lex luther" });
+        const powers = enemy.showPowers();
+        powers[0].attack = 50;
+        expect(enemy.powers[0].attack).to.equal(100);
+    });
+    it('it can stop changes to object an array multiple levels deep', function() {
+        const Youtuber = {
+            public: {
+                username: "",
+                videos: [
+                    {
+                        virality: 1,
+                        channels: [
+                            { user: "jodys corner" },
+                            { user: "jay-3 entertainment" }
+                        ]
+                    },
+                    {
+                        virality: 1,
+                        channels: [
+                            { user: "redlettermedia", adrev: [ 10, 20 ] },
+                            { user: "spaced", violations: 2 }
+                        ]
+                    }
+                ],
+                users: [
+                    {
+                        id: 1,
+                        name: "jodys corner",
+                        videos: [
+                            {
+                                title: "avengers review"
+                            }
+                        ]
+                    }
+                ],
+                getChannels() {
+                    return this.public.videos;
+                }
+            }
+        }
+        const eYoutuber = encage(Youtuber);
+        const tuber = eYoutuber.create({ username: 'somni' });
+        const videos = tuber.getChannels();
+        videos[0].channels[0].user = "ronin";
+        videos[1].channels[0].adrev[0] = 77;
+        videos[0].virality = 4;
+        const newVideos = tuber.getChannels();
+        expect(newVideos[0].channels[0].user).to.equal("jodys corner");
+        expect(newVideos[0].virality).to.equal(1);
+        expect(newVideos[1].channels[0].adrev[0]).to.equal(10)
+    });
+    it("static functions also return copies of data", function () {
+        const Gaurdians = {
+            name: "Gaurdians",
+            public: {
+                name: "",
+            },
+            static: {
+                guardians: [],
+                setGaurds(title, name) {
+                    this.static.guardians.push({ 
+                         name, 
+                         catchphrase: "We are " + title 
+                     });
+                },
+                getGuards() {
+                    return this.static.guardians;
+                }
+            }, 
+            init : {
+                setGaurdians() {
+                    this.static.setGaurds("The Guardians of the freaking Galaxy", this.public.name);
+                }
+            }
+        }
+        const eGuardians = encage(Gaurdians);
+        const starlord = eGuardians.create({ name: "Peter Quill" });
+        const rocket = eGuardians.create({ name: "Rocket Racoon" });
+        const firstGaurdian = eGuardians.static.getGuards();
+        firstGaurdian.catchphrase = "You are a trash panda!";
+        firstGaurdian.name = "Groot";
+        expect(eGuardians.static.guardians[0].catchphrase).to.equal("We are The Guardians of the freaking Galaxy");
+        expect(eGuardians.static.guardians[0].name).to.equal("Peter Quill");
+    });
 })

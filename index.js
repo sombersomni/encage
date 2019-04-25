@@ -10,6 +10,7 @@ const checkObject = require('./src/checkObject');
 const separateStatics = require('./src/separateStatics');
 const checkInit = require('./src/checkInit');
 const deepFreeze = require('./src/deepfreeze');
+const deepCopy = require('./src/deepCopy');
 const deepAssign = require('./src/deepAssign');
 const mapRootToChild = require('./src/mapRootToChild');
 let { SINGLETON_FLAG, INHERITANCE_FLAG, IGNORE_INIT, TRACKING_FLAG } = require("./src/flags");
@@ -103,7 +104,16 @@ function encage(Parent = {}, options = { singleton: false, tracking: false }) {
       if (Object.keys(_static.methods).length > 0) {
         for (let key in _static.methods) {
           //binding to make sure the context is kept inside this class
-          this.static[key] = _static.methods[key].bind(this);
+          const tempFn = function () {
+            const returnValue = _static.methods[key].apply(this, arguments);
+            if(returnValue) {
+              return deepCopy(returnValue);
+            }
+            else {
+              return returnValue;
+            }
+          }
+          this.static[key] = tempFn.bind(this);
         }
       }
       //need to keep root attached to this static object;
@@ -322,7 +332,14 @@ function encage(Parent = {}, options = { singleton: false, tracking: false }) {
               if (_private[prop] instanceof Function) {
                 let tempFn = _private[prop];
                 _private[prop] = function () {
-                  return tempFn.apply(boundContext, arguments);
+                  const returnValue = tempFn.apply(boundContext, arguments);
+                  //keeps the object from being manipulated externally
+                  if(returnValue) {
+                    return deepCopy(returnValue);
+                  }
+                  else {
+                    return returnValue;
+                  }
                 }
               }
             }
@@ -332,7 +349,14 @@ function encage(Parent = {}, options = { singleton: false, tracking: false }) {
               if (_protected[prop] instanceof Function) {
                 let tempFn = _protected[prop];
                 _protected[prop] = function () {
-                  return tempFn.apply(boundContext, arguments);
+                  const returnValue = tempFn.apply(boundContext, arguments);
+                  //keeps the object from being manipulated externally
+                  if(returnValue) {
+                    return deepCopy(returnValue);
+                  }
+                  else {
+                    return returnValue;
+                  }
                 }
               }
             }
@@ -343,7 +367,14 @@ function encage(Parent = {}, options = { singleton: false, tracking: false }) {
               if (newInst[name] instanceof Function) {
                 let tempFn = newInst[name];
                 newInst[name] = function () {
-                  return tempFn.apply(boundContext, arguments);
+                  const returnValue = tempFn.apply(boundContext, arguments);
+                  //keeps the object from being manipulated externally
+                  if(returnValue) {
+                    return deepCopy(returnValue);
+                  }
+                  else {
+                    return returnValue;
+                  }
                 }
               }
             });
