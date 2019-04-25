@@ -40,7 +40,7 @@ It's as simple as that. Encage takes a javascript object as an argument.
 ## Basic Usage
 
 ### Setting Up Object
-Below is a basic example of How to set up your Base Class. You can conly use objects to create you configuration for Class. DO NOT USE CONSTRUCTORS, CONSTRUCTOR INSTANCES OR CLASSES!
+Below is a basic example of How to set up your Base Class. You can only use objects to create you configuration for Class. DO NOT USE CONSTRUCTORS, CONSTRUCTOR INSTANCES OR CLASSES!
 ```js
 const Account = {
     name: "Account",
