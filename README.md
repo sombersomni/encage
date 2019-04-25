@@ -107,7 +107,8 @@ console.log(eShape.static.numOfShapes) //Prints out 1
 In the example above, we increase the count after an instance is made. However, we would have to run countShapes() every time we want to increment our numOfShapes. There is a better way to do this. 
 
 * **Init:**
-  This property allows you to add methods that you can deploy every time an instance is create. This is great for keeping track of how many instances you've created, do quick alterations to variables or do async calls to a server to receive data to assign to your instances or private/protected variables. Below is a better approach to creating a counter for objects created using the Shapes example. 
+  This property allows you to add methods that you can deploy every time an instance is create. This is great for keeping track of how many instances you've created, do quick alterations to variables or do async calls to a server to receive data to assign to your instances or private/protected variables. Below is a better approach to creating a counter for objects created using the Shapes example.
+   
 ```js
 const Shape = {
     static: { numOfShapes: 0 },
@@ -196,7 +197,7 @@ console.log(eBankAccount) ;
      clientNames: { '1': 'Iron Man' },
      clients: [ [Object] ] } } */
 ```
-Managing your instances has never been easier!
+Managing your Instances is easier than ever!
 
 ### Controling Private Variables
 Private variables are not accessible in your instances, so you must create functions in your Base Class to tamper with them. You can also create private functions!
