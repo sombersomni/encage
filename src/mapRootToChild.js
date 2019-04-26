@@ -94,7 +94,9 @@ function mapRootToChild(tempChild, Root, allowInits) {
                 }
             } else {
                 if (setting != 'init' && setting != 'static') {
-                    tempChild[setting] = Object.assign({}, Root[setting], tempChild[setting]);
+                    if(setting === 'public' || setting === 'private' || setting === 'protected' || setting === 'name') {
+                        tempChild[setting] = Object.assign({}, Root[setting], tempChild[setting]);
+                    }
                 }
             }
         }

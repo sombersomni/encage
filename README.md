@@ -157,7 +157,7 @@ console.log(user); //Prints out { username: 'Scarlo' }
 You should also be aware that any defaults that exist in your Encage Object will be transfered to your instance, so make sure to use well defined default values.
 
 ### Initializing Instances
-The init property allows you to control the flow of how your instance is initialized. You have access to the public,private, protected and static variables during this process.
+The init property allows you to control the flow of how your instance is initialized. You have access to the public,private, protected and static variables during this process. You are also given acesss to your intance using **_this.instance_**! (Only available in init methods).
 ```js
  const BankAccount = {
     init: {
@@ -223,7 +223,7 @@ console.log(worker.getSSN('superman')) //Prints out 55555555
 worker.setSSN('superman', 222222222)
 console.log(worker.getSSN('superman')) //Prints out 222222222
 ```
-How is the private even accessible? Any function placed in your Base Class is given global access to all your variables through the this keyword. **_DO NOT RETURN THIS OR YOU WILL EXPOSE YOUR INSTANCE AND ALL ITS PRIVATE VALUES__**.
+How is the private even accessible? Any function placed in your Base Class is given global access to all your variables through the this keyword. **_DO NOT RETURN THIS OR YOU WILL EXPOSE YOUR INSTANCE AND ALL ITS PRIVATE VALUES_**.
 
 ### Working with Promises
 This is a basic example, but you may want to take basic steps to secure your code. You should use the **_init_** property and add a function that can securely set up the private variable when the instance intializes.
@@ -238,7 +238,7 @@ const Employee = {
     private: { personalData: {}, earnings: [] },
     init: {
         assignSSN() {
-            return fetch('./getData') //must return a promise or it will work properly
+            return fetch('./getData') //must return a promise or it will NOT work properly
             .then(response => response.json())
             .then(data => { this.private.personalData = data } );
         },
@@ -259,7 +259,7 @@ worker.ready.then(() => {
     console.log(worker.getEarnings());
     }); //Prints out private data!
 ```
-This works incredibly well when working with databases. You must use the **_ready_** property of your instance so you can continue where your promises left off.
+This works incredibly well when dealing with databases. You must use the **_ready_** property of your instance so you can continue where your promises left off.
 
 ## Inheritance
 
@@ -289,6 +289,10 @@ const Enemy = { name: "Enemy", public: { type: 'enemy' } };
 ### Using instanceOf
 Because we are using objects, we lose the ability to check if instances belong to a Class. Luckily, instances come with an instanceOf function that solves this problem!
 ```js
+const Character = {...};
+const Enemy = {...};
+const eCharacter = encage(Character);
+const eEnemy = eCharacter.extend(Enemy);
 console.log(slime.instanceOf(eCharacter)) //Prints out true
 console.log(slime.instanceOf(eEnemy)) //Prints out true
 ```
@@ -354,7 +358,7 @@ The methods you use inside of a Base Class's init property will also be used by 
 ```js
 const eCircle = eShape.extend(Circle, { allowInits: false });
 ``` 
-you can also control which init functions you want the inherited Class to use when creating instances!
+you can also control which Init functions you want the inherited Class to use when creating instances!
 ```js
 const Shape = {
     init: {

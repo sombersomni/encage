@@ -56,6 +56,9 @@ const Character = {
             for (let type in this.static.allDescriptions) {
                 console.log(type + " : " + this.static.allDescriptions[type] + "\n");
             }
+        },
+        getItem(item) {
+            return this.protected.backpack[item];
         }
     },
     protected: {

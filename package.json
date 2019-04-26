@@ -1,6 +1,6 @@
 {
   "name": "encage",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "emulates c++ for creating objects with private variables",
   "main": "index.js",
   "scripts": {
@@ -35,16 +35,10 @@
   },
   "homepage": "https://github.com/somberSomni/encage#readme",
   "devDependencies": {
-    "@babel/core": "^7.4.3",
-    "@babel/preset-env": "^7.4.3",
     "axios": "^0.18.0",
-    "babel-loader": "^8.0.5",
     "chai": "*",
     "express": "^4.16.4",
-    "mocha": "*",
-    "uglifyjs-webpack-plugin": "^2.1.2",
-    "webpack": "^4.30.0",
-    "webpack-cli": "^3.3.1"
+    "mocha": "*"
   },
   "dependencies": {
     "cuid": "^2.1.6"

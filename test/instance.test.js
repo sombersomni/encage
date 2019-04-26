@@ -1,5 +1,6 @@
 var chai = require('chai');
 var encage = require('../index.js');
+var {ErrorProne, ErrorChild} = require('../test/examples/ErrorProne');
 var expect = chai.expect;
 
 //test objects and constructors
@@ -130,27 +131,27 @@ describe('#encageInst', function () {
         expect(character2).to.be.null;
         expect(eCharacter.toggle.bind(null, 3)).to.throw(TypeError, 'Option name needs to be a string. Either use tracking or singleton');
         expect(eCharacter.toggle.bind(null, {})).to.throw(TypeError, 'Option name needs to be a string. Either use tracking or singleton');
-        expect(eCharacter.toggle.bind(null, function test(){})).to.throw(TypeError, 'Option name needs to be a string. Either use tracking or singleton');
+        expect(eCharacter.toggle.bind(null, function test() { })).to.throw(TypeError, 'Option name needs to be a string. Either use tracking or singleton');
         expect(eCharacter.toggle.bind(null, null)).to.throw(TypeError, 'Option name needs to be a string. Either use tracking or singleton');
         expect(eCharacter.toggle.bind(null, [3])).to.throw(TypeError, 'Option name needs to be a string. Either use tracking or singleton');
     });
-    it('cant change object once received', function() {
-        const User = { 
-            name: 'User', 
-            public: { 
-                name: '', 
+    it('cant change object once received', function () {
+        const User = {
+            name: 'User',
+            public: {
+                name: '',
                 getData() { return this.private.sensitiveData }
-            }, 
-            private: { 
-                sensitiveData: 
-                { 
-                    address: '333 Super Ln', 
-                    SSN: 99999999, 
-                    stuff: [ { code: 333 }, 'stuff']
+            },
+            private: {
+                sensitiveData:
+                {
+                    address: '333 Super Ln',
+                    SSN: 99999999,
+                    stuff: [{ code: 333 }, 'stuff']
                 }
-            } 
+            }
         };
-        const eUser = encage(User, { tracking : true });
+        const eUser = encage(User, { tracking: true });
         const user = eUser.create({ name: "sombersomni" });
         const data = user.getData();
         expect(data.SSN).to.equal(99999999)
@@ -158,7 +159,7 @@ describe('#encageInst', function () {
         data.stuff[0].code = 222;
         expect(user.getData().SSN).to.equal(99999999);
     });
-    it('cant change array once received', function() {
+    it('cant change array once received', function () {
         const eCharacter = encage(Character);
         const eEnemy = eCharacter.extend(Enemy);
         const enemy = eEnemy.create({ name: "lex luther" });
@@ -166,7 +167,7 @@ describe('#encageInst', function () {
         powers[0].attack = 50;
         expect(enemy.powers[0].attack).to.equal(100);
     });
-    it('it can stop changes to object an array multiple levels deep', function() {
+    it('it can stop changes to object an array multiple levels deep', function () {
         const Youtuber = {
             public: {
                 username: "",
@@ -181,7 +182,7 @@ describe('#encageInst', function () {
                     {
                         virality: 1,
                         channels: [
-                            { user: "redlettermedia", adrev: [ 10, 20 ] },
+                            { user: "redlettermedia", adrev: [10, 20] },
                             { user: "spaced", violations: 2 }
                         ]
                     }
@@ -222,16 +223,16 @@ describe('#encageInst', function () {
             static: {
                 guardians: [],
                 setGaurds(title, name) {
-                    this.static.guardians.push({ 
-                         name, 
-                         catchphrase: "We are " + title 
-                     });
+                    this.static.guardians.push({
+                        name,
+                        catchphrase: "We are " + title
+                    });
                 },
                 getGuards() {
                     return this.static.guardians;
                 }
-            }, 
-            init : {
+            },
+            init: {
                 setGaurdians() {
                     this.static.setGaurds("The Guardians of the freaking Galaxy", this.public.name);
                 }
@@ -245,5 +246,21 @@ describe('#encageInst', function () {
         firstGaurdian.name = "Groot";
         expect(eGuardians.static.guardians[0].catchphrase).to.equal("We are The Guardians of the freaking Galaxy");
         expect(eGuardians.static.guardians[0].name).to.equal("Peter Quill");
+    });
+    it('protects user from entering incorrect property types', function () {
+        expect(encage.bind(null, ErrorProne)).to.throw(TypeError, 'name property for object must be a string');
+        delete ErrorProne['name'];
+        expect(encage.bind(null, ErrorProne)).to.throw(TypeError, 'Your property breakCode should probably be in the public, private, protected, static or init property');
+        delete ErrorProne['breakCode'];
+        const eEP = encage(ErrorProne);
+        const errorp = eEP.create({ name: "new" });
+        expect(errorp.getName()).to.equal('new');
+        expect(eEP.extend.bind(eEP, ErrorChild)).to.throw(TypeError, 'name property for object must be a string');
+        delete ErrorChild['name'];
+        expect(eEP.extend.bind(eEP, ErrorChild)).to.throw(TypeError, 'You must use an object when creating protected property');
+        delete ErrorChild['protected'];
+        const eEChild = eEP.extend(ErrorChild);
+        const errorc = eEChild.create({ name: "child" });
+        expect(errorc.getInfo()).to.be.empty;
     });
 })

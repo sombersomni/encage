@@ -42,7 +42,6 @@ describe('#encage', function () {
         const user = eUser.create({ name: "sombersomni" });
         const user2 = eUser.create({ name: "beauty" });
         expect(user.name).to.equal(eUser.static.instances[user.instanceID].name);
-        console.log(user.instanceID);
         expect(user2.name).to.equal(eUser.static.instances[user2.instanceID].name);
         //stops tracking
         eUser.toggle('tracking');
@@ -63,6 +62,18 @@ describe('#encage', function () {
         const earth2 = eEarth.create();
         expect(earth2).to.be.null;
     });
+    it('throws error if property isnt a part of encage specifications', function() {
+        const Hero = {
+            sprite() {}
+        }
+        expect(encage.bind(null, Hero)).to.throw(TypeError, 'Your property sprite should probably be in the public, private, protected, static or init property');
+    });
+    it('checks if properties in object are objects themselves', function() {
+        expect(encage.bind(null, { public: 3 })).to.throw(TypeError, 'You must use an object when creating public property');
+        expect(encage.bind(null, { private: [] })).to.throw(TypeError, 'You must use an object when creating private property');
+        expect(encage.bind(null, { init: false })).to.throw(TypeError, 'You must use an object when creating init property');
+        expect(encage.bind(null, { static: function () {} })).to.throw(TypeError, 'You must use an object when creating static property');
+    });
     it('init properties must be a function', function () {
         const Test = {
             init: {
@@ -78,7 +89,7 @@ describe('#encage', function () {
         const eUser = encage(User);
         expect(encage.bind(null, Test)).to.throw(TypeError, "init properties must be a function");
         expect(eUser.extend.bind(eUser, Test)).to.throw(TypeError, "init properties must be a function");
-
+        
     });
     describe('#create', function () {
         before(function () {
@@ -104,12 +115,6 @@ describe('#encage', function () {
             expect(eBankAccount.create.bind(eBankAccount, null, [])).to.throw(TypeError, 'You need to use an object for your options');
             expect(eBankAccount.create.bind(eBankAccount, null, new Set())).to.throw(TypeError, 'You need to use an object for your options');
 
-        });
-        it('checks if properties in object are objects themselves', function() {
-            expect(eBankAccount.extend.bind(eBankAccount, { public: 3 })).to.throw(TypeError, 'You must use an object when creating public');
-            expect(eBankAccount.extend.bind(eBankAccount, { private: [] })).to.throw(TypeError, 'You must use an object when creating private');
-            expect(eBankAccount.extend.bind(eBankAccount, { init: false })).to.throw(TypeError, 'You must use an object when creating init');
-            expect(eBankAccount.extend.bind(eBankAccount, { static: function () {} })).to.throw(TypeError, 'You must use an object when creating static');
         });
         it('create or extend funcitons wont overide existing functions', function () {
             const Test = {
@@ -279,10 +284,10 @@ describe('#encage', function () {
             expect(eBankAccount.extend.bind(eBankAccount, {}, [])).to.throw(TypeError, 'You need to use an object for your options');
         });
         it('checks if properties in object are objects themselves', function() {
-            expect(eBankAccount.extend.bind(eBankAccount, { public: 3 })).to.throw(TypeError, 'You must use an object when creating public');
-            expect(eBankAccount.extend.bind(eBankAccount, { private: [] })).to.throw(TypeError, 'You must use an object when creating private');
-            expect(eBankAccount.extend.bind(eBankAccount, { init: false })).to.throw(TypeError, 'You must use an object when creating init');
-            expect(eBankAccount.extend.bind(eBankAccount, { static: function () {} })).to.throw(TypeError, 'You must use an object when creating static');
+            expect(eBankAccount.extend.bind(eBankAccount, { public: 3 })).to.throw(TypeError, 'You must use an object when creating public property');
+            expect(eBankAccount.extend.bind(eBankAccount, { protected: [] })).to.throw(TypeError, 'You must use an object when creating protected property');
+            expect(eBankAccount.extend.bind(eBankAccount, { init: false })).to.throw(TypeError, 'You must use an object when creating init property');
+            expect(eBankAccount.extend.bind(eBankAccount, { static: function () {} })).to.throw(TypeError, 'You must use an object when creating static property');
         });
         it('allow one object to inherit functionality from another without passing private', function () {
             const eShape = encage(Shape);

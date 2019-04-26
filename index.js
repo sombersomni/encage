@@ -31,14 +31,14 @@ function encage(Parent = {}, options = { singleton: false, tracking: false }) {
   //checks if Parent Object/Class is an object
   const isObject = (Parent && typeof Parent === 'object' && (Parent.constructor === Object));
   if (isObject) {
-    checkObject(Parent);
-    if (Parent.inherited) {
+    if (Parent.__encageInherited) {
       //this is important for keeping inheritance through a prototype chain for infinite number of classes;
       flag = flag ^ INHERITANCE_FLAG;
-      hierarchy = Object.assign({}, Parent.hierarchy);
-      delete Parent.inherited;
-      delete Parent.hierarchy;
+      hierarchy = Object.assign({}, Parent.__encageHierarchy);
+      delete Parent.__encageInherited;
+      delete Parent.__encageHierarchy;
     }
+    checkObject(Parent);
     if (options.tracking) {
       flag = flag ^ TRACKING_FLAG;
     }
@@ -106,7 +106,7 @@ function encage(Parent = {}, options = { singleton: false, tracking: false }) {
           //binding to make sure the context is kept inside this class
           const tempFn = function () {
             const returnValue = _static.methods[key].apply(this, arguments);
-            if(returnValue) {
+            if (returnValue) {
               return deepCopy(returnValue);
             }
             else {
@@ -154,7 +154,7 @@ function encage(Parent = {}, options = { singleton: false, tracking: false }) {
           }
           //run instance and map it to temporary Child before adding inherited properties to it
           let savedName = '';
-          if (Child['name']) {
+          if (Child['name'] && typeof Child['name'] === 'string') {
             savedName = Child['name'];
             delete Child['name'];
           }
@@ -167,15 +167,13 @@ function encage(Parent = {}, options = { singleton: false, tracking: false }) {
           Object.getOwnPropertyNames(tempChild).forEach(prop => {
             if (prop != 'private' && prop != 'protected' && prop != 'public' && prop != 'static' && prop != 'init') {
               //compounds temp props into public and deletes rest around object
-              if (!tempChild['public']) {
+              if (!tempChild['public'][prop]) {
                 tempChild['public'][prop] = tempChild[prop];
               }
               delete tempChild[prop];
             } else {
               const value = tempChild[prop];
-              if (typeof value != 'object' || value.constructor != Object) {
-                throw new TypeError("You must use an object when creating " + prop);
-              }
+              //placing static and init in an array for managing inherited initialization methods
               if (prop === 'static' || prop === 'init') {
                 tempChild[prop] = [value]
               }
@@ -183,7 +181,7 @@ function encage(Parent = {}, options = { singleton: false, tracking: false }) {
           });
           //mapping items from Root object to new child object
           tempChild = mapRootToChild(tempChild, Root, allowInits);
-          return encage(Object.assign(tempChild, { name: savedName, inherited: true, hierarchy }), { tracking: extendOpts.tracking });
+          return encage(Object.assign(tempChild, { name: savedName, __encageInherited: true, __encageHierarchy: hierarchy }), { tracking: extendOpts.tracking });
         } else {
           throw new TypeError('Argument must be an object for extend');
         }
@@ -334,7 +332,7 @@ function encage(Parent = {}, options = { singleton: false, tracking: false }) {
                 _private[prop] = function () {
                   const returnValue = tempFn.apply(boundContext, arguments);
                   //keeps the object from being manipulated externally
-                  if(returnValue) {
+                  if (returnValue) {
                     return deepCopy(returnValue);
                   }
                   else {
@@ -351,7 +349,7 @@ function encage(Parent = {}, options = { singleton: false, tracking: false }) {
                 _protected[prop] = function () {
                   const returnValue = tempFn.apply(boundContext, arguments);
                   //keeps the object from being manipulated externally
-                  if(returnValue) {
+                  if (returnValue) {
                     return deepCopy(returnValue);
                   }
                   else {
@@ -369,7 +367,7 @@ function encage(Parent = {}, options = { singleton: false, tracking: false }) {
                 newInst[name] = function () {
                   const returnValue = tempFn.apply(boundContext, arguments);
                   //keeps the object from being manipulated externally
-                  if(returnValue) {
+                  if (returnValue) {
                     return deepCopy(returnValue);
                   }
                   else {
