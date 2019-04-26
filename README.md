@@ -354,7 +354,7 @@ You can also toggle this feature on and off using the toggle function provied by
 eEarth.toggle("singleton");
 ```
 ### Controlling Init
-The methods you use inside of a Base Class's init property will also be used by inherited Classes by default. To turn this feature off, you can set the **allowInit** to false in your extend function.
+The methods you use inside of a Base Class's init property will also be used by inherited Classes by default. To turn this feature off, you can set **allowInits** to false in your extend function.
 ```js
 const eCircle = eShape.extend(Circle, { allowInits: false });
 ``` 
