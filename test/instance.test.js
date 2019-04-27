@@ -263,4 +263,10 @@ describe('#encageInst', function () {
         const errorc = eEChild.create({ name: "child" });
         expect(errorc.getInfo()).to.be.empty;
     });
+    it("can change public property and change can be seen in this.public", function () {
+        const eCharacter = encage(Character);
+        const character = eCharacter.create({ name: "Rebecca" });
+        character.health = 20;
+        expect(character.getHealth()).to.equal(20);
+    })
 })

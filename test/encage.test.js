@@ -108,14 +108,6 @@ describe('#encage', function () {
             expect(eBankAccount.create.bind(eBankAccount, false)).to.throw(TypeError, 'Argument must be an object for create');
             expect(eBankAccount.create.bind(eBankAccount, [])).to.throw(TypeError, 'Argument must be an object for create');
         });
-        it('checks if options are an object or nothing at all', function () {
-            expect(eBankAccount.create.bind(eBankAccount, null, 1)).to.throw(TypeError, 'You need to use an object for your options');
-            expect(eBankAccount.create.bind(eBankAccount, null, false)).to.throw(TypeError, 'You need to use an object for your options');
-            expect(eBankAccount.create.bind(eBankAccount, null, function Test() { })).to.throw(TypeError, 'You need to use an object for your options');
-            expect(eBankAccount.create.bind(eBankAccount, null, [])).to.throw(TypeError, 'You need to use an object for your options');
-            expect(eBankAccount.create.bind(eBankAccount, null, new Set())).to.throw(TypeError, 'You need to use an object for your options');
-
-        });
         it('create or extend funcitons wont overide existing functions', function () {
             const Test = {
                 static: { create: function () {} }
@@ -218,40 +210,6 @@ describe('#encage', function () {
             expect(account.withdraw()).to.be.undefined;
             account.getName = function () { return "My name is " + this.name }
             expect(account.getName()).to.equal("My name is Melissa");
-        });
-        it('allows all instances to be sealed so no other properties can be added but changes can be made to objects', function () {
-            const account = eBankAccount.create({ name: "Harry", bankName: "Gringots", password: "Griffindor" }, { sealed: true });
-            expect(Object.isSealed(account)).to.be.true;
-            expect(Object.isExtensible(account)).to.be.false;
-            account.location = "UK";
-            expect(account.location).to.be.undefined;
-            expect(account.name).to.equal("Harry");
-            account.name = "Ron";
-            expect(account.name).to.equal("Ron");
-            account.setAddress('Muggleland');
-            account.newInfo = { place: "space" };
-            expect(account.newInfo).to.be.undefined;
-            //objects are mutable still, so if you have an object it can be added to.
-            expect(account.info.address).to.equal('Muggleland');
-        });
-        it('allows all instances to be frozen so no changes can be made', function () {
-            const account = eBankAccount.create({ name: "Hermione", bankName: "Gringots", password: "Hufflepuff" }, { freeze: true });
-            expect(Object.isFrozen(account)).to.be.true;
-            expect(Object.isExtensible(account)).to.be.false;
-            function deleteName() {
-                "use strict";
-                delete account.name
-            };
-            expect(deleteName).to.throw(TypeError);
-            expect(account.name).to.equal("Hermione");
-            account.name = "Juno";
-            expect(account.name).to.equal("Hermione");
-            account.setBankName('Snerkins');
-            expect(account.bankName).to.equal("Gringots");
-            account.getBalance = function () { return true };
-            expect(account.getBalance()).to.equal(0);
-            expect(Object.isFrozen(account.info)).to.be.true;
-
         });
         it('can change statics out in public', function () {
             const account = eBankAccount.create({ name: "Hermione", bankName: "Gringots", password: "Hufflepuff" });

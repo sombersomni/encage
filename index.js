@@ -9,7 +9,6 @@
 const checkObject = require('./src/checkObject');
 const separateStatics = require('./src/separateStatics');
 const checkInit = require('./src/checkInit');
-const deepFreeze = require('./src/deepfreeze');
 const deepCopy = require('./src/deepCopy');
 const deepAssign = require('./src/deepAssign');
 const mapRootToChild = require('./src/mapRootToChild');
@@ -186,16 +185,10 @@ function encage(Parent = {}, options = { singleton: false, tracking: false }) {
           throw new TypeError('Argument must be an object for extend');
         }
       },
-      create(constructArgs = {}, createOpts = { sealed: false, freeze: false }) {
+      create(constructArgs = {}) {
         let _staticRef = this.static;
         if (constructArgs === null || constructArgs === undefined) {
           constructArgs = {};
-        }
-        if (createOpts === null || createOpts === undefined) {
-          createOpts = { sealed: false, freeze: false };
-        }
-        if (typeof createOpts != 'object' || !(createOpts.constructor === Object)) {
-          throw new TypeError('You need to use an object for your options');
         }
         //assign arguments from create to public and private set variables
         if ((typeof constructArgs === 'object' && constructArgs.constructor === Object)) {
@@ -215,8 +208,8 @@ function encage(Parent = {}, options = { singleton: false, tracking: false }) {
                   } else {
                     publicProps[prop] = {
                       value,
-                      writeable: !createOpts.sealed || !createOpts.freeze,
-                      configurable: !createOpts.freeze,
+                      writeable: true,
+                      configurable: true,
                       enumerable: true
                     }
                   }
@@ -235,6 +228,7 @@ function encage(Parent = {}, options = { singleton: false, tracking: false }) {
           //sealing protected so it can't be deleted from the outside.
           let _protected = Root.protected ? Object.assign({}, Root.protected) : {};
           //creates a new instance to configure before returning to user
+          //anything that wans't overwritten by construct arguments will be replaced with root defaults
           if (filteredPublicProps.length > 0) {
             filteredPublicProps.forEach(prop => {
               const value = Root.public[prop];
@@ -243,8 +237,8 @@ function encage(Parent = {}, options = { singleton: false, tracking: false }) {
               } else {
                 rootPublicProps[prop] = {
                   value,
-                  writeable: !createOpts.sealed || !createOpts.freeze,
-                  configurable: !createOpts.freeze,
+                  writeable: true,
+                  configurable: true,
                   enumerable: true
                 }
               }
@@ -376,12 +370,6 @@ function encage(Parent = {}, options = { singleton: false, tracking: false }) {
                 }
               }
             });
-          }
-          //keeps user from changing object properties. Based on user setting
-          if (createOpts.sealed) {
-            newInst = Object.seal(newInst);
-          } else if (createOpts.freeze) {
-            newInst = deepFreeze(newInst);
           }
           //flips singleton flag so it will no longer create instances
           if (options.singleton) {

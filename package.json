@@ -1,6 +1,6 @@
 {
   "name": "encage",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "emulates c++ for creating objects with private variables",
   "main": "index.js",
   "scripts": {
@@ -15,12 +15,14 @@
     "encage",
     "encapsulation",
     "scope",
+    "state",
     "access control",
     "instances",
     "inheritance",
     "private",
     "privacy",
     "protected",
+    "protect",
     "object",
     "management",
     "privacy",
